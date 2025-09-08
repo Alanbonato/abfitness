@@ -1,0 +1,470 @@
+[
+  {
+    "name": "Abacate",
+    "p": 1.2,
+    "c": 6.0,
+    "f": 8.4
+  },
+  {
+    "name": "Abacaxi",
+    "p": 0.5,
+    "c": 13.0,
+    "f": 0.1
+  },
+  {
+    "name": "Abóbora",
+    "p": 0.4,
+    "c": 6.0,
+    "f": 0.8
+  },
+  {
+    "name": "Acem Bovino",
+    "p": 20.0,
+    "c": 0.0,
+    "f": 15.0
+  },
+  {
+    "name": "Alcatra (Miolo)",
+    "p": 31.9,
+    "c": 0.0,
+    "f": 11.6
+  },
+  {
+    "name": "Amendoim torrado",
+    "p": 23.68,
+    "c": 21.51,
+    "f": 49.66
+  },
+  {
+    "name": "Arroz",
+    "p": 2.5,
+    "c": 28.0,
+    "f": 0.3
+  },
+  {
+    "name": "Arroz Integral",
+    "p": 2.6,
+    "c": 25.8,
+    "f": 1.0
+  },
+  {
+    "name": "Aveia em Flocos",
+    "p": 13.9,
+    "c": 66.6,
+    "f": 0.0
+  },
+  {
+    "name": "Azeite",
+    "p": 0.0,
+    "c": 0.0,
+    "f": 100.0
+  },
+  {
+    "name": "Banana Prata",
+    "p": 1.3,
+    "c": 25.8,
+    "f": 0.3
+  },
+  {
+    "name": "Batata Asterix",
+    "p": 1.1,
+    "c": 24.0,
+    "f": 0.2
+  },
+  {
+    "name": "Batata Inglesa",
+    "p": 2.0,
+    "c": 17.0,
+    "f": 0.1
+  },
+  {
+    "name": "Batata Inglesa Frita",
+    "p": 3.4,
+    "c": 41.0,
+    "f": 15.0
+  },
+  {
+    "name": "Batata Palha",
+    "p": 5.6,
+    "c": 37.2,
+    "f": 48.0
+  },
+  {
+    "name": "Batom (Garoto)",
+    "p": 8.125,
+    "c": 53.125,
+    "f": 33.75
+  },
+  {
+    "name": "Beterraba",
+    "p": 1.9,
+    "c": 11.1,
+    "f": 0.1
+  },
+  {
+    "name": "Cacau 100%",
+    "p": 25.0,
+    "c": 15.0,
+    "f": 20.0
+  },
+  {
+    "name": "Castanha",
+    "p": 14.5,
+    "c": 15.1,
+    "f": 63.5
+  },
+  {
+    "name": "Cenoura",
+    "p": 0.8,
+    "c": 6.7,
+    "f": 0.2
+  },
+  {
+    "name": "Cerveja Spaten",
+    "p": 0.428571,
+    "c": 3.142857,
+    "f": 0.0
+  },
+  {
+    "name": "Chia",
+    "p": 17.2,
+    "c": 44.0,
+    "f": 32.8
+  },
+  {
+    "name": "Chocolate ao Leite Nestle",
+    "p": 8.0,
+    "c": 60.0,
+    "f": 30.0
+  },
+  {
+    "name": "Clara de Ovo",
+    "p": 11.0,
+    "c": 0.7,
+    "f": 0.2
+  },
+  {
+    "name": "Coração de Frango",
+    "p": 26.4,
+    "c": 0.1,
+    "f": 7.93
+  },
+  {
+    "name": "Creme de Leite",
+    "p": 0.0,
+    "c": 3.86,
+    "f": 20.0
+  },
+  {
+    "name": "Cuzcuz(Amarelo)",
+    "p": 2.2,
+    "c": 25.3,
+    "f": 0.7
+  },
+  {
+    "name": "Doce de Amendoim Gibi",
+    "p": 8.5,
+    "c": 70.0,
+    "f": 17.5
+  },
+  {
+    "name": "Farelo de Aveia",
+    "p": 15.0,
+    "c": 50.0,
+    "f": 7.5
+  },
+  {
+    "name": "Fatia de Pizza 4 Queijos",
+    "p": 9.230769,
+    "c": 26.153846,
+    "f": 11.538462
+  },
+  {
+    "name": "Feijão",
+    "p": 6.0,
+    "c": 14.0,
+    "f": 0.5
+  },
+  {
+    "name": "Filé de Coxa e Sobrecoxa de Frango",
+    "p": 19.0,
+    "c": 0.0,
+    "f": 13.0
+  },
+  {
+    "name": "Filé Mignon Bovino",
+    "p": 32.8,
+    "c": 0.0,
+    "f": 8.8
+  },
+  {
+    "name": "Filé Mignon Suíno (Grelhado)",
+    "p": 32.8,
+    "c": 0.0,
+    "f": 8.8
+  },
+  {
+    "name": "Hamburguer Maturatta de Picanha",
+    "p": 17.0,
+    "c": 0.0,
+    "f": 20.0
+  },
+  {
+    "name": "Inhame",
+    "p": 1.49,
+    "c": 27.58,
+    "f": 0.14
+  },
+  {
+    "name": "Iogurte Grego",
+    "p": 5.0,
+    "c": 15.0,
+    "f": 4.0
+  },
+  {
+    "name": "Iogurte Zero",
+    "p": 4.0,
+    "c": 6.0,
+    "f": 0.0
+  },
+  {
+    "name": "Laranja",
+    "p": 0.9,
+    "c": 12.0,
+    "f": 0.1
+  },
+  {
+    "name": "Leite Condensado",
+    "p": 7.0,
+    "c": 55.0,
+    "f": 8.0
+  },
+  {
+    "name": "Leite Desnatado",
+    "p": 3.5,
+    "c": 5.0,
+    "f": 0.15
+  },
+  {
+    "name": "Leite em Pó",
+    "p": 26.153846,
+    "c": 38.461538,
+    "f": 26.923077
+  },
+  {
+    "name": "Leite Integral",
+    "p": 3.3,
+    "c": 5.0,
+    "f": 3.0
+  },
+  {
+    "name": "Limão (Sumo)",
+    "p": 3.0,
+    "c": 5.2,
+    "f": 0.0
+  },
+  {
+    "name": "Linguiça Nabrasa (Pernil)",
+    "p": 12.0,
+    "c": 0.0,
+    "f": 26.0
+  },
+  {
+    "name": "Lombo Suíno (Assado)",
+    "p": 27.8,
+    "c": 0.0,
+    "f": 6.05
+  },
+  {
+    "name": "Maçã",
+    "p": 0.3,
+    "c": 14.0,
+    "f": 0.2
+  },
+  {
+    "name": "Macarrão",
+    "p": 5.8,
+    "c": 30.86,
+    "f": 0.93
+  },
+  {
+    "name": "Macarrão Instantâneo",
+    "p": 850.0,
+    "c": 5406.0,
+    "f": 1318.0
+  },
+  {
+    "name": "Macarrão integral",
+    "p": 5.33,
+    "c": 26.54,
+    "f": 0.54
+  },
+  {
+    "name": "Maionese Tradicional Hellmann's",
+    "p": 0.0,
+    "c": 7.5,
+    "f": 33.333333
+  },
+  {
+    "name": "Maracujá",
+    "p": 1.0,
+    "c": 14.0,
+    "f": 0.6
+  },
+  {
+    "name": "Mel",
+    "p": 0.0,
+    "c": 82.0,
+    "f": 0.0
+  },
+  {
+    "name": "Moéla de Frango",
+    "p": 30.38,
+    "c": 0.0,
+    "f": 2.68
+  },
+  {
+    "name": "Morango",
+    "p": 0.7,
+    "c": 7.7,
+    "f": 0.3
+  },
+  {
+    "name": "Nhoque",
+    "p": 4.88,
+    "c": 34.01,
+    "f": 3.23
+  },
+  {
+    "name": "Ovos",
+    "p": 12.5,
+    "c": 1.0,
+    "f": 10.0
+  },
+  {
+    "name": "Pão de Brioche (Plus Vita)",
+    "p": 8.0,
+    "c": 52.0,
+    "f": 9.0
+  },
+  {
+    "name": "Pão de Forma",
+    "p": 10.0,
+    "c": 50.0,
+    "f": 2.0
+  },
+  {
+    "name": "Pão de forma Integral",
+    "p": 8.6,
+    "c": 44.0,
+    "f": 3.6
+  },
+  {
+    "name": "Pão francês",
+    "p": 9.0,
+    "c": 50.0,
+    "f": 2.0
+  },
+  {
+    "name": "Pasta de Amendoim Power One",
+    "p": 26.666667,
+    "c": 20.0,
+    "f": 46.666667
+  },
+  {
+    "name": "Patinho Bovino",
+    "p": 21.0,
+    "c": 0.0,
+    "f": 9.0
+  },
+  {
+    "name": "Peito de Frango",
+    "p": 31.0,
+    "c": 0.0,
+    "f": 3.6
+  },
+  {
+    "name": "Peito de Frango Empanado Lar",
+    "p": 15.384615,
+    "c": 10.769231,
+    "f": 4.846154
+  },
+  {
+    "name": "Peito de Peru(ave)",
+    "p": 29.3,
+    "c": 0.0,
+    "f": 5.52
+  },
+  {
+    "name": "Presunto",
+    "p": 15.0,
+    "c": 0.0,
+    "f": 3.266667
+  },
+  {
+    "name": "Queijo Mussarela",
+    "p": 20.0,
+    "c": 3.333333,
+    "f": 23.333333
+  },
+  {
+    "name": "Queijo Parmesão Ralado",
+    "p": 30.0,
+    "c": 0.0,
+    "f": 35.0
+  },
+  {
+    "name": "Queijo Prato",
+    "p": 22.7,
+    "c": 1.9,
+    "f": 29.1
+  },
+  {
+    "name": "Requeijão",
+    "p": 11.666667,
+    "c": 6.666667,
+    "f": 30.0
+  },
+  {
+    "name": "Requeijão light godam",
+    "p": 10.0,
+    "c": 3.333333,
+    "f": 20.0
+  },
+  {
+    "name": "Ricota",
+    "p": 12.6,
+    "c": 3.8,
+    "f": 8.1
+  },
+  {
+    "name": "Salsicha",
+    "p": 16.0,
+    "c": 4.0,
+    "f": 18.0
+  },
+  {
+    "name": "Supremo de Frango Empanado",
+    "p": 11.538462,
+    "c": 12.307692,
+    "f": 8.461538
+  },
+  {
+    "name": "Tapioca",
+    "p": 0.0,
+    "c": 56.0,
+    "f": 0.0
+  },
+  {
+    "name": "Tomate",
+    "p": 1.0,
+    "c": 4.0,
+    "f": 0.2
+  },
+  {
+    "name": "Whey Protein Concentrado",
+    "p": 80.0,
+    "c": 10.0,
+    "f": 6.666667
+  }
+]
