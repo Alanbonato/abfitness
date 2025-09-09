@@ -191,7 +191,7 @@ const $=id=>document.getElementById(id);
 const todayStr=()=>new Date().toISOString().slice(0,10);
 
 let FOODS = []; // será carregado do Firestore
-let DATA = {}; // carregado do Firestore no login
+let DATA  = JSON.parse(localStorage.getItem(LS_DATA)  || "{}");
 let META = 0; // será carregado do Firestore
 
 async function saveFoods(){ await salvarDadosUsuario("foods", FOODS) }
@@ -1270,7 +1270,7 @@ setInterval(saveData, 20000);
   async function saveData() {
     if (!currentUser) return;
     const fields = collectFields();
-    await setDoc(doc(db, "users", currentUser.uid), fields, { merge: true });
+    await setDoc(doc(db, "usuarios", currentUser.uid), fields, { merge: true });
     console.log("✅ Dados salvos no Firestore.");
   }
 
@@ -1318,7 +1318,7 @@ setInterval(saveData, 20000);
     const email = document.getElementById("loginEmail").value;
     const password = document.getElementById("loginPassword").value;
     const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, "users", cred.user.uid), { createdAt: new Date() });
+    await setDoc(doc(db, "usuarios", cred.user.uid), { createdAt: new Date() });
   });
 
   // LOGOUT
@@ -1333,7 +1333,7 @@ setInterval(saveData, 20000);
       document.getElementById("auth-section").style.display = "none";
       document.getElementById("app").style.display = "block";
 
-      const snap = await getDoc(doc(db, "users", user.uid));
+      const snap = await getDoc(doc(db, "usuarios", user.uid));
       if (snap.exists()) applyFields(snap.data());
     } else {
       currentUser = null;
@@ -1381,13 +1381,13 @@ setInterval(saveData, 20000);
 
   async function salvarDadosUsuario(categoria, dados) {
     if (!currentUser) return;
-    const ref = doc(db, "users", currentUser);
-    await setDoc(ref, { [categoria]: dados, updatedAt: new Date() }, { merge: true }); console.log("[save]", categoria, "ok");
+    const ref = doc(db, "usuarios", currentUser);
+    await setDoc(ref, { [categoria]: dados }, { merge: true });
   }
 
   async function carregarDadosUsuario(categoria) {
     if (!currentUser) return null;
-    const ref = doc(db, "users", currentUser);
+    const ref = doc(db, "usuarios", currentUser);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data();
@@ -1438,6 +1438,137 @@ setInterval(saveData, 20000);
     }
   });
 </script>
+
+
+<!-- ===== ABNUTRI • Firestore Integration & Cloud-only Storage ===== -->
+<script type="module">
+import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const db = getFirestore();
+const auth = getAuth();
+let currentUser = null;
+
+// ---------------- localStorage -> Firestore (kv) ----------------
+let cache = new Map();
+let unsubKV = null;
+let hydrating = false;
+
+function startKVListener(uid){
+  if (unsubKV) { try{unsubKV();}catch(e){} unsubKV=null; }
+  cache.clear();
+  if (!uid) return;
+  const colRef = collection(db, "users", uid, "kv");
+  unsubKV = onSnapshot(colRef, (snap) => {
+    snap.docChanges().forEach(ch => {
+      const k = ch.doc.id;
+      if (ch.type === "removed") cache.delete(k);
+      else cache.set(k, ch.doc.data()?.value ?? null);
+    });
+  });
+}
+
+async function kvSet(key, value){
+  if (!currentUser) return;
+  const ref = doc(db, "users", currentUser.uid, "kv", key);
+  await setDoc(ref, { value: String(value), updatedAt: new Date() }, { merge: true });
+}
+async function kvGet(key){
+  if (cache.has(key)) return cache.get(key);
+  if (!currentUser) return null;
+  const ref = doc(db, "users", currentUser.uid, "kv", key);
+  const snap = await getDoc(ref);
+  if (snap.exists()){
+    const v = snap.data().value ?? null;
+    cache.set(key, v);
+    return v;
+  }
+  return null;
+}
+async function kvRemove(key){
+  if (!currentUser) return;
+  cache.delete(key);
+  const ref = doc(db, "users", currentUser.uid, "kv", key);
+  await deleteDoc(ref);
+}
+async function kvClear(){
+  if (!currentUser) return;
+  const colRef = collection(db, "users", currentUser.uid, "kv");
+  const snap = await getDocs(colRef);
+  for (const d of snap.docs){ await deleteDoc(d.ref); }
+  cache.clear();
+}
+
+const localProxy = {
+  getItem: (k) => cache.has(k) ? cache.get(k) : null,
+  setItem: (k, v) => { cache.set(k, String(v)); if (!hydrating) kvSet(k, v); },
+  removeItem: (k) => { kvRemove(k); },
+  clear: () => { kvClear(); },
+  key: (i) => Array.from(cache.keys())[i] || null,
+  get length(){ return cache.size; }
+};
+Object.defineProperty(window, "localStorage", { value: localProxy });
+window.__hydrateLocalKey = (k, v) => { const prev = hydrating; hydrating = true; localProxy.setItem(k, v); hydrating = prev; };
+console.info("[ABNUTRI] localStorage redirecionado para Firestore (users/{uid}/kv)");
+
+// ---------------- Funções globais de dados ----------------
+async function salvarDadosUsuario(categoria, dados){
+  if (!currentUser){ console.error("[ABNUTRI] Usuário não logado."); return; }
+  try {
+    const ref = doc(db, "users", currentUser.uid, categoria, "dados");
+    await setDoc(ref, { ...dados, updatedAt: new Date() }, { merge: true });
+    console.log(`[save:${categoria}] ok`);
+  } catch (e){
+    console.error(`[save:${categoria}] erro`, e);
+  }
+}
+
+async function carregarDadosUsuario(categoria){
+  if (!currentUser) return null;
+  try {
+    const ref = doc(db, "users", currentUser.uid, categoria, "dados");
+    const snap = await getDoc(ref);
+    if (snap.exists()) return snap.data();
+    return null;
+  } catch (e){
+    console.error(`[load:${categoria}] erro`, e);
+    return null;
+  }
+}
+
+async function carregarTudoAbas(){
+  const categorias = ["registro","metabolismo","banco","auditoria","refeicoes"];
+  for (const cat of categorias){
+    const data = await carregarDadosUsuario(cat);
+    if (data != null){
+      try {
+        const json = JSON.stringify(data);
+        window.__hydrateLocalKey(cat, json);
+      } catch(e){ console.warn("Falha ao serializar", cat, e); }
+    }
+  }
+  console.info("[ABNUTRI] Hidratação concluída das abas principais.");
+}
+
+window.salvarDadosUsuario = salvarDadosUsuario;
+window.carregarDadosUsuario = carregarDadosUsuario;
+window.carregarTudoAbas = carregarTudoAbas;
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user || null;
+  if (!currentUser){
+    startKVListener(null);
+    console.warn("[ABNUTRI] Não logado.");
+    return;
+  }
+  console.log("[ABNUTRI] Logado:", currentUser.uid);
+  startKVListener(currentUser.uid);
+  await carregarTudoAbas();
+});
+</script>
+<!-- ===== /ABNUTRI ===== -->
 
 </body>
 
