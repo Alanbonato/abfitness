@@ -1440,7 +1440,7 @@ setInterval(saveData, 20000);
 </script>
 
 
-<!-- ===== ABNUTRI • Firestore Integration & Cloud-only Storage (com migração) ===== -->
+<!-- ===== ABNUTRI • Firestore Integration & Cloud-only Storage (com interceptação foods) ===== -->
 <script type="module">
 import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -1501,9 +1501,53 @@ async function kvClear(){
   cache.clear();
 }
 
+// ---------------- Banco de alimentos (subcoleção) ----------------
+async function salvarAlimento(alimentoId, dados){
+  if (!currentUser){ console.error("[ABNUTRI] Usuário não logado."); return; }
+  try {
+    const ref = doc(db, "users", currentUser.uid, "banco", alimentoId);
+    await setDoc(ref, { ...dados, updatedAt: new Date() }, { merge: true });
+    console.log(`[banco] alimento ${alimentoId} salvo.`);
+  } catch (e){
+    console.error("[banco] erro ao salvar alimento", e);
+  }
+}
+
+async function carregarBancoAlimentos(){
+  if (!currentUser) return [];
+  try {
+    const colRef = collection(db, "users", currentUser.uid, "banco");
+    const snap = await getDocs(colRef);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e){
+    console.error("[banco] erro ao carregar", e);
+    return [];
+  }
+}
+
+// ---------------- localStorage proxy com interceptação ----------------
 const localProxy = {
   getItem: (k) => cache.has(k) ? cache.get(k) : null,
-  setItem: (k, v) => { cache.set(k, String(v)); if (!hydrating) kvSet(k, v); },
+  setItem: (k, v) => {
+    cache.set(k, String(v));
+    if (!hydrating) {
+      if (k === "foods") {
+        try {
+          const arr = JSON.parse(v);
+          if (Array.isArray(arr)) {
+            arr.forEach(item => {
+              const alimentoId = item.id || item.nome || ("alimento_" + Date.now());
+              salvarAlimento(alimentoId, item);
+            });
+          }
+        } catch(e) {
+          console.error("[banco] erro ao interceptar foods:", e);
+        }
+      } else {
+        kvSet(k, v);
+      }
+    }
+  },
   removeItem: (k) => { kvRemove(k); },
   clear: () => { kvClear(); },
   key: (i) => Array.from(cache.keys())[i] || null,
@@ -1511,9 +1555,9 @@ const localProxy = {
 };
 Object.defineProperty(window, "localStorage", { value: localProxy });
 window.__hydrateLocalKey = (k, v) => { const prev = hydrating; hydrating = true; localProxy.setItem(k, v); hydrating = prev; };
-console.info("[ABNUTRI] localStorage redirecionado para Firestore (users/{uid}/kv)");
+console.info("[ABNUTRI] localStorage redirecionado para Firestore (users/{uid}/kv), com interceptação foods -> banco");
 
-// ---------------- Funções globais de dados ----------------
+// ---------------- Outras funções globais ----------------
 async function salvarDadosUsuario(categoria, dados){
   if (!currentUser){ console.error("[ABNUTRI] Usuário não logado."); return; }
   try {
@@ -1552,67 +1596,6 @@ async function carregarTudoAbas(){
   console.info("[ABNUTRI] Hidratação concluída das abas principais.");
 }
 
-// ---------------- Banco de alimentos (subcoleção) ----------------
-async function salvarAlimento(alimentoId, dados){
-  if (!currentUser){ console.error("[ABNUTRI] Usuário não logado."); return; }
-  try {
-    const ref = doc(db, "users", currentUser.uid, "banco", alimentoId);
-    await setDoc(ref, { ...dados, updatedAt: new Date() }, { merge: true });
-    console.log(`[banco] alimento ${alimentoId} salvo.`);
-  } catch (e){
-    console.error("[banco] erro ao salvar alimento", e);
-  }
-}
-
-async function carregarBancoAlimentos(){
-  if (!currentUser) return [];
-  try {
-    const colRef = collection(db, "users", currentUser.uid, "banco");
-    const snap = await getDocs(colRef);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e){
-    console.error("[banco] erro ao carregar", e);
-    return [];
-  }
-}
-
-// ---------------- Migração de foods -> banco ----------------
-async function migrarFoodsParaBanco(){
-  if (!currentUser) return;
-  let migrados = 0;
-
-  // 1) Migrar de subcoleção antiga "foods"
-  try {
-    const oldFoodsCol = collection(db, "users", currentUser.uid, "foods");
-    const snap = await getDocs(oldFoodsCol);
-    for (const d of snap.docs){
-      await salvarAlimento(d.id, d.data());
-      await deleteDoc(d.ref);
-      migrados++;
-    }
-  } catch (e){ console.warn("Sem dados em /foods ou erro ao migrar:", e); }
-
-  // 2) Migrar de KV ("foods" como chave única)
-  try {
-    const oldFoods = await kvGet("foods");
-    if (oldFoods){
-      const arr = JSON.parse(oldFoods);
-      if (Array.isArray(arr)){
-        for (const item of arr){
-          const alimentoId = item.id || item.nome || ("alimento_" + Date.now());
-          await salvarAlimento(alimentoId, item);
-          migrados++;
-        }
-      }
-      await kvRemove("foods");
-    }
-  } catch (e){ console.warn("Sem dados em kv/foods ou erro ao migrar:", e); }
-
-  if (migrados > 0){
-    console.info(`[MIGRAÇÃO] ${migrados} alimentos migrados para /banco`);
-  }
-}
-
 // Expor globalmente
 window.salvarDadosUsuario = salvarDadosUsuario;
 window.carregarDadosUsuario = carregarDadosUsuario;
@@ -1630,9 +1613,6 @@ onAuthStateChanged(auth, async (user) => {
   }
   console.log("[ABNUTRI] Logado:", currentUser.uid);
   startKVListener(currentUser.uid);
-  // Migrar alimentos antigos
-  await migrarFoodsParaBanco();
-  // Hidratar dados das outras abas
   await carregarTudoAbas();
 });
 </script>
