@@ -1440,174 +1440,7 @@ setInterval(saveData, 20000);
 </script>
 
 
-<!-- ===== AB NUTRI: Cloud-only Storage & Label Fixer ===== -->
-<script>
-/**
- * Firestore-backed storage shim that replaces window.localStorage.* methods.
- * - All keys are stored per-user in: users/{uid}/kv/{key}
- * - Reads are served from an in-memory cache kept in sync via onSnapshot
- * - Writes go to Firestore; cache updates immediately
- * - Removes any remaining reliance on real localStorage
- * - Nothing is persisted in the browser
- */
-(function () {
-  // Wait for Firebase SDKs to exist
-  function when(cond, cb, tries=0) {
-    if (cond()) return cb();
-    if (tries > 300) return console.warn("[ABNUTRI] Timeout waiting for Firebase.");
-    setTimeout(() => when(cond, cb, tries+1), 50);
-  }
-
-  const CloudKV = {
-    db: null,
-    uid: null,
-    cache: new Map(),
-    unsub: null,
-    ready: false,
-    init(auth, db) {
-      this.db = db;
-      if (!auth) return console.error("[ABNUTRI] Firebase Auth not found.");
-      auth.onAuthStateChanged(async (user) => {
-        if (this.unsub) { try { this.unsub(); } catch(e){} this.unsub = null; }
-        this.cache.clear();
-        this.ready = false;
-
-        if (!user) {
-          this.uid = null;
-          console.info("[ABNUTRI] Sem usuário logado — storage vazio.");
-          return;
-        }
-
-        this.uid = user.uid;
-        console.info("[ABNUTRI] CloudKV conectado ao usuário:", this.uid);
-
-        // Live sync of KV
-        const { collection, doc, onSnapshot } = firebase.firestore;
-        const colRef = firebase.firestore().collection(`users/${this.uid}/kv`);
-        this.unsub = colRef.onSnapshot((snap) => {
-          snap.docChanges().forEach(ch => {
-            const k = ch.doc.id;
-            if (ch.type === "removed") {
-              this.cache.delete(k);
-            } else {
-              const data = ch.doc.data();
-              this.cache.set(k, data && typeof data.value !== "undefined" ? String(data.value) : null);
-            }
-          });
-          this.ready = true;
-          window.dispatchEvent(new CustomEvent("abnutri:cloudkv-ready"));
-        }, (err) => {
-          console.error("[ABNUTRI] Erro ao sincronizar KV:", err);
-        });
-      });
-    },
-    _col() {
-      if (!this.uid) throw new Error("Usuário não autenticado");
-      return firebase.firestore().collection(`users/${this.uid}/kv`);
-    },
-    getItem(key) {
-      if (!key) return null;
-      return this.cache.has(key) ? this.cache.get(key) : null;
-    },
-    async setItem(key, value) {
-      if (!this.uid) { console.warn("[ABNUTRI] setItem ignorado sem usuário."); return; }
-      const v = value == null ? null : String(value);
-      this.cache.set(key, v);
-      try {
-        await this._col().doc(key).set({ value: v, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-      } catch (e) { console.error("[ABNUTRI] setItem falhou:", e); }
-    },
-    async removeItem(key) {
-      if (!this.uid) return;
-      this.cache.delete(key);
-      try { await this._col().doc(key).delete(); } catch (e) { console.error(e); }
-    },
-    async clear() {
-      if (!this.uid) return;
-      const snap = await this._col().get();
-      const batch = firebase.firestore().batch();
-      snap.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-      this.cache.clear();
-    }
-  };
-
-  // Patch localStorage methods to use CloudKV (non-persistent local browser storage is disabled)
-  function patchLocalStorage() {
-    if (!("localStorage" in window)) return;
-    try {
-      const real = window.localStorage;
-      // Clear any existing local data to enforce cloud-only
-      try { real.clear(); } catch (e) {}
-      const shim = {
-        getItem: (k) => CloudKV.getItem(k),
-        setItem: (k, v) => { CloudKV.setItem(k, v); },
-        removeItem: (k) => { CloudKV.removeItem(k); },
-        clear: () => { CloudKV.clear(); },
-        key: (i) => Array.from(CloudKV.cache.keys())[i] || null,
-        get length() { return CloudKV.cache.size; }
-      };
-      // Replace methods only (preserve object identity to avoid crashes)
-      ["getItem", "setItem", "removeItem", "clear", "key"].forEach(m => {
-        try { real[m] = shim[m]; } catch (e) {
-          // Some browsers make methods non-writable; fallback to shadowing via proxy
-          console.warn("[ABNUTRI] Não foi possível sobrescrever localStorage diretamente; usando Proxy.");
-        }
-      });
-      // Fallback: override global accessor with Proxy if necessary
-      try {
-        const proxy = new Proxy(real, {
-          get(target, prop) { return (shim[prop] ?? target[prop]); },
-          set(target, prop, val) { if (prop in shim) { target[prop] = val; return true; } target[prop] = val; return true; }
-        });
-        Object.defineProperty(window, "localStorage", { get: () => proxy });
-      } catch(e){ /* ignore if not allowed */ }
-      console.info("[ABNUTRI] localStorage redirecionado para Firestore.");
-    } catch (e) {
-      console.error("[ABNUTRI] Falha ao aplicar shim de localStorage:", e);
-    }
-  }
-
-  // Auto-fix labels with invalid `for` attributes to improve a11y and console warnings
-  function fixLabels() {
-    try {
-      document.querySelectorAll("label[for]").forEach(lbl => {
-        const id = lbl.getAttribute("for");
-        if (!id) return;
-        if (!document.getElementById(id)) {
-          // try to find nearest input/select/textarea
-          const candidate = lbl.closest("div,section,td,th,li,form")?.querySelector("input,select,textarea");
-          if (candidate && candidate.id) {
-            lbl.setAttribute("for", candidate.id);
-          } else if (candidate) {
-            // assign a generated id
-            const gen = "fld_" + Math.random().toString(36).slice(2,9);
-            candidate.id = gen;
-            lbl.setAttribute("for", gen);
-          }
-        }
-      });
-      console.info("[ABNUTRI] Labels auditadas e corrigidas quando necessário.");
-    } catch (e) { console.warn("[ABNUTRI] Não foi possível auditar labels:", e); }
-  }
-
-  // Bootstrap once Firebase is ready
-  when(() => window.firebase && firebase.auth && firebase.firestore, function () {
-    CloudKV.init(firebase.auth(), firebase.firestore());
-    patchLocalStorage();
-    // After first paint
-    if (document.readyState === "complete" || document.readyState === "interactive") {
-      fixLabels();
-    } else {
-      document.addEventListener("DOMContentLoaded", fixLabels, { once: true });
-    }
-  });
-})();
-</script>
-<!-- ===== /AB NUTRI ===== -->
-
-
-<!-- ===== ABNUTRI • Firestore Integration & Cloud-only Storage ===== -->
+<!-- ===== ABNUTRI • Firestore Integration & Cloud-only Storage (com migração) ===== -->
 <script type="module">
 import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -1706,7 +1539,6 @@ async function carregarDadosUsuario(categoria){
 }
 
 async function carregarTudoAbas(){
-  // banco de alimentos sai daqui, pois virou subcoleção
   const categorias = ["registro","metabolismo","auditoria","refeicoes"];
   for (const cat of categorias){
     const data = await carregarDadosUsuario(cat);
@@ -1744,6 +1576,43 @@ async function carregarBancoAlimentos(){
   }
 }
 
+// ---------------- Migração de foods -> banco ----------------
+async function migrarFoodsParaBanco(){
+  if (!currentUser) return;
+  let migrados = 0;
+
+  // 1) Migrar de subcoleção antiga "foods"
+  try {
+    const oldFoodsCol = collection(db, "users", currentUser.uid, "foods");
+    const snap = await getDocs(oldFoodsCol);
+    for (const d of snap.docs){
+      await salvarAlimento(d.id, d.data());
+      await deleteDoc(d.ref);
+      migrados++;
+    }
+  } catch (e){ console.warn("Sem dados em /foods ou erro ao migrar:", e); }
+
+  // 2) Migrar de KV ("foods" como chave única)
+  try {
+    const oldFoods = await kvGet("foods");
+    if (oldFoods){
+      const arr = JSON.parse(oldFoods);
+      if (Array.isArray(arr)){
+        for (const item of arr){
+          const alimentoId = item.id || item.nome || ("alimento_" + Date.now());
+          await salvarAlimento(alimentoId, item);
+          migrados++;
+        }
+      }
+      await kvRemove("foods");
+    }
+  } catch (e){ console.warn("Sem dados em kv/foods ou erro ao migrar:", e); }
+
+  if (migrados > 0){
+    console.info(`[MIGRAÇÃO] ${migrados} alimentos migrados para /banco`);
+  }
+}
+
 // Expor globalmente
 window.salvarDadosUsuario = salvarDadosUsuario;
 window.carregarDadosUsuario = carregarDadosUsuario;
@@ -1761,6 +1630,9 @@ onAuthStateChanged(auth, async (user) => {
   }
   console.log("[ABNUTRI] Logado:", currentUser.uid);
   startKVListener(currentUser.uid);
+  // Migrar alimentos antigos
+  await migrarFoodsParaBanco();
+  // Hidratar dados das outras abas
   await carregarTudoAbas();
 });
 </script>
