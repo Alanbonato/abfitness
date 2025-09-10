@@ -719,7 +719,7 @@ async function carregarRegistro(uid, data) {
 
 // Carregar Banco de Alimentos
 async function carregarAlimentos() {
-  const querySnapshot = await getDocs(collection(db, "alimentos"));
+  const querySnapshot = await getDocs(collection(db, "users", auth.currentUser.uid, "foods"));
   querySnapshot.forEach(doc => {
     console.log("Alimento:", doc.id, " => ", doc.data());
     // TODO: preencher tabela/lista de alimentos no app
@@ -871,7 +871,7 @@ async function carregarRegistro(uid, data) {
 
 // --- BANCO DE ALIMENTOS (global) ---
 async function carregarAlimentos() {
-  const querySnapshot = await getDocs(collection(db, "alimentos"));
+  const querySnapshot = await getDocs(collection(db, "users", auth.currentUser.uid, "foods"));
   querySnapshot.forEach(doc => {
     console.log("Alimento:", doc.id, " => ", doc.data());
     // TODO: preencher tabela/lista de alimentos no app
@@ -1270,7 +1270,7 @@ setInterval(saveData, 20000);
   async function saveData() {
     if (!currentUser) return;
     const fields = collectFields();
-    await setDoc(doc(db, "usuarios", currentUser.uid), fields, { merge: true });
+    await setDoc(doc(db, "users", auth.currentUser.uid, currentUser.uid), fields, { merge: true });
     console.log("✅ Dados salvos no Firestore.");
   }
 
@@ -1318,7 +1318,7 @@ setInterval(saveData, 20000);
     const email = document.getElementById("loginEmail").value;
     const password = document.getElementById("loginPassword").value;
     const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, "usuarios", cred.user.uid), { createdAt: new Date() });
+    await setDoc(doc(db, "users", auth.currentUser.uid, cred.user.uid), { createdAt: new Date() });
   });
 
   // LOGOUT
@@ -1333,7 +1333,7 @@ setInterval(saveData, 20000);
       document.getElementById("auth-section").style.display = "none";
       document.getElementById("app").style.display = "block";
 
-      const snap = await getDoc(doc(db, "usuarios", user.uid));
+      const snap = await getDoc(doc(db, "users", auth.currentUser.uid, user.uid));
       if (snap.exists()) applyFields(snap.data());
     } else {
       currentUser = null;
@@ -1381,13 +1381,13 @@ setInterval(saveData, 20000);
 
   async function salvarDadosUsuario(categoria, dados) {
     if (!currentUser) return;
-    const ref = doc(db, "usuarios", currentUser);
+    const ref = doc(db, "users", auth.currentUser.uid, currentUser);
     await setDoc(ref, { [categoria]: dados }, { merge: true });
   }
 
   async function carregarDadosUsuario(categoria) {
     if (!currentUser) return null;
-    const ref = doc(db, "usuarios", currentUser);
+    const ref = doc(db, "users", auth.currentUser.uid, currentUser);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data();
