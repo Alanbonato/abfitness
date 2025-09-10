@@ -8,7 +8,7 @@
  :root{--bg:#0d0f12;--card:#14171a;--line:#23272d;--text:#e8ecf2;--muted:#9aa0a6;--accent:#f59e0b;--accent2:#f8b844}
   *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans",sans-serif}
   header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#111418;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
-  .brand{display:flex;align-items:center;gap:10px} .brand img{height:100px;display:block} .brand h1{margin:0;font-size:2.5rem;letter-spacing:.3px;color:var(--accent);font-weight:900}
+  .brand{display:flex;align-items:center;gap:10px} .brand img{height:80px;display:block} .brand h1{margin:0;font-size:2.0rem;letter-spacing:.3px;color:var(--accent);font-weight:900}
   .nav{display:flex;gap:8px;flex-wrap:wrap}
   .chip{border:1px solid #2a2f35;background:#0b0d0f;color:#e7ebf1;padding:8px 12px;border-radius:999px;font-weight:900;cursor:pointer}
   .chip.active{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#111;border-color:transparent}
@@ -1381,10 +1381,13 @@ setInterval(saveData, 20000);
 
   async async function salvarDadosUsuario(nomeColecao, dados) {
   const user = auth.currentUser;
-  if (!user) throw new Error("Usuário não autenticado");
-
+  if (!user) {
+    console.warn("Salvar ignorado: usuário não logado.");
+    return;
+  }
   const subRef = doc(db, "users", user.uid, nomeColecao, "dados");
   await setDoc(subRef, { ...dados, updatedAt: new Date() }, { merge: true });
+}, { merge: true });
 }, { merge: true });
   }
 
@@ -1563,10 +1566,13 @@ console.info("[ABNUTRI] localStorage redirecionado para Firestore (users/{uid}/k
 // ---------------- Outras funções globais ----------------
 async async function salvarDadosUsuario(nomeColecao, dados) {
   const user = auth.currentUser;
-  if (!user) throw new Error("Usuário não autenticado");
-
+  if (!user) {
+    console.warn("Salvar ignorado: usuário não logado.");
+    return;
+  }
   const subRef = doc(db, "users", user.uid, nomeColecao, "dados");
   await setDoc(subRef, { ...dados, updatedAt: new Date() }, { merge: true });
+}, { merge: true });
 }
   try {
     const ref = doc(db, "users", currentUser.uid, categoria, "dados");
@@ -1625,6 +1631,24 @@ onAuthStateChanged(auth, async (user) => {
 });
 </script>
 <!-- ===== /ABNUTRI ===== -->
+
+
+<!-- Fix: garantir funções de auth disponíveis (import dinamico e exposição global) -->
+<script type="module">
+  try {
+    const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    window.createUserWithEmailAndPassword = authMod.createUserWithEmailAndPassword;
+    window.signInWithEmailAndPassword = authMod.signInWithEmailAndPassword;
+    window.signOut = authMod.signOut;
+    window.setPersistence = authMod.setPersistence;
+    window.browserSessionPersistence = authMod.browserSessionPersistence;
+    // also expose onAuthStateChanged if needed
+    window.onAuthStateChanged = authMod.onAuthStateChanged;
+    console.log("Auth helpers loaded (dynamic import).");
+  } catch(e) {
+    console.error("Falha ao carregar auth helpers:", e);
+  }
+</script>
 
 </body>
 
