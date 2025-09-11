@@ -486,7 +486,22 @@ $("applyBtn").addEventListener("click",()=>{
 </div>
 
 
-<!-- Firebase inicialização movida para firebase-config.js -->
+<!-- Firebase App (modular SDK) -->
+<script type="module">
+  // Importando Firebase
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc , serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // Configurações do Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyDYcgm0wfWgecIFvjSV3MF2QLdUuuCwoLU",
+    authDomain: "abfitness-af1cc.firebaseapp.com",
+    projectId: "abfitness-af1cc",
+    storageBucket: "abfitness-af1cc.appspot.com",
+    messagingSenderId: "392827676437",
+    appId: "1:392827676437:web:386a433fffbeef99bdab1c"
+  };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -645,27 +660,6 @@ await setDoc(doc(db, "users", cred.user.uid), { email: cred.user.email || email,
 
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// Configuração do Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyDYcgm0wfWgecIFvjSV3MF2QLdUuuCwoLU",
-  authDomain: "abfitness-af1cc.firebaseapp.com",
-  projectId: "abfitness-af1cc",
-  storageBucket: "abfitness-af1cc.appspot.com",
-  messagingSenderId: "392827676437",
-  appId: "1:392827676437:web:386a433fffbeef99bdab1c"
-};
-
-// Inicialização
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// --- Funções Firestore ---
 
 // Salvar Meta
 async function salvarMeta(uid, meta, tdee) {
@@ -758,25 +752,6 @@ onAuthStateChanged(auth, async (user) => {
 
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// Configuração do Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyDYcgm0wfWgecIFvjSV3MF2QLdUuuCwoLU",
-  authDomain: "abfitness-af1cc.firebaseapp.com",
-  projectId: "abfitness-af1cc",
-  storageBucket: "abfitness-af1cc.appspot.com",
-  messagingSenderId: "392827676437",
-  appId: "1:392827676437:web:386a433fffbeef99bdab1c"
-};
-
-// Inicialização
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 // --- PERFIL (Metabolismo) ---
 
@@ -923,26 +898,7 @@ onAuthStateChanged(auth, async (user) => {
 
 <!-- Firebase + App integration (inserted by assistant) -->
 <script type="module">
-  // Firebase modular SDK (v9+)
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-  // Your Firebase config (from user)
-  const firebaseConfig = {
-    apiKey: "AIzaSyDYcgm0wfWgecIFvjSV3MF2QLdUuuCwoLU",
-    authDomain: "abfitness-af1cc.firebaseapp.com",
-    projectId: "abfitness-af1cc",
-    storageBucket: "abfitness-af1cc.appspot.com",
-    messagingSenderId: "392827676437",
-    appId: "1:392827676437:web:386a433fffbeef99bdab1c"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
+ 
   // ---- Simple auth UI insertion (login/register modal) ----
   const authHtml = `
   <div id="auth-modal" class="modal hidden" style="display:none;align-items:center;justify-content:center">
@@ -980,16 +936,7 @@ onAuthStateChanged(auth, async (user) => {
   }
   authClose.addEventListener('click', closeAuth);
 
-  // create simple header button for "Login" if none present
-  if (!document.getElementById('loginBtn')) {
-    const btn = document.createElement('button');
-    btn.id = 'loginBtn';
-    btn.className = 'chip';
-    btn.textContent = 'Login';
-    const header = document.querySelector('header .nav') || document.querySelector('header');
-    if (header) header.appendChild(btn);
-    btn.addEventListener('click', openAuth);
-  }
+ 
 
   // wire auth actions
   authRegister.addEventListener('click', async () => {
@@ -1129,19 +1076,7 @@ onAuthStateChanged(auth, async (user) => {
   document.addEventListener('change', scheduleSave, true);
   document.addEventListener('input', scheduleSave, true);
 
-  // Add a manual save button if not present
-  if (!document.getElementById('saveAllBtn')) {
-    const sb = document.createElement('button');
-    sb.id = 'saveAllBtn';
-    sb.className = 'btn primary';
-    sb.style.position = 'fixed';
-    sb.style.right = '16px';
-    sb.style.bottom = '16px';
-    sb.textContent = 'Salvar';
-    document.body.appendChild(sb);
-    sb.addEventListener('click', saveForCurrentUser);
-  }
-
+  
   // Update UI when auth state changes
   onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -1235,24 +1170,7 @@ setInterval(saveData, 20000);
 </script>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDYcgm0wfWgecIFvjSV3MF2QLdUuuCwoLU",
-    authDomain: "abfitness-af1cc.firebaseapp.com",
-    projectId: "abfitness-af1cc",
-    storageBucket: "abfitness-af1cc.appspot.com",
-    messagingSenderId: "392827676437",
-    appId: "1:392827676437:web:386a433fffbeef99bdab1c"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
+  
   let currentUser = null;
 
   async function saveData() {
@@ -1338,62 +1256,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/f
   setInterval(saveData, 20000);
 </script>
 
-<!-- Firebase SDK e Firestore Integration -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDYcgm0wfWgecIFvjSV3MF2QLdUuuCwoLU",
-    authDomain: "abfitness-af1cc.firebaseapp.com",
-    projectId: "abfitness-af1cc",
-    storageBucket: "abfitness-af1cc.appspot.com",
-    messagingSenderId: "392827676437",
-    appId: "1:392827676437:web:386a433fffbeef99bdab1c"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  // signInAnonymously removido
-
-  let currentUser = null;
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      currentUser = user.uid;
-      console.log("Usuário logado:", currentUser);
-      carregarDadosIniciais();
-    }
-  });
-
-  async function salvarDadosUsuario(categoria, dados) {
-    if (!currentUser) return;
-    const ref = doc(db, "users", auth.currentUser.uid, currentUser);
-    await setDoc(ref, { [categoria]: dados }, { merge: true });
-  }
-
-  async function carregarDadosUsuario(categoria) {
-    if (!currentUser) return null;
-    const ref = doc(db, "users", auth.currentUser.uid, currentUser);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      const data = snap.data();
-      return data[categoria] || null;
-    }
-    return null;
-  }
-
-  async function carregarDadosIniciais(){
-    FOODS = await carregarDadosUsuario("foods") || [];
-    DATA  = await carregarDadosUsuario("data")  || {};
-    META  = await carregarDadosUsuario("meta")  || 0;
-    const ultima = await carregarDadosUsuario("ultimaAba");
-    if(ultima){ mostrarAba(ultima); }
-  }
-
-  </script>
+<
 
 
 <script type="module">
@@ -1435,7 +1298,6 @@ import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSn
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const db = getFirestore();
 const auth = getAuth();
@@ -1607,18 +1469,6 @@ onAuthStateChanged(auth, async (user) => {
 });
 </script>
 <!-- ===== /ABNUTRI ===== -->
-
-
-<script type="module">
-  import app from "./firebase-config.js";
-  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } 
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, serverTimestamp } 
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-</script>
 
 </body>
 
