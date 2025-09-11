@@ -68,50 +68,43 @@
 .table-scroll{max-height:420px;overflow:auto}
 
 /* === Ajustes responsivos para celular/tablet === */
-@media (max-width: 768px) {
-  .container {
-    padding: 12px;
-  }
-
-  .header {
-    flex-direction: column;
-    height: auto;
-    gap: 10px;
+@media (max-width: 480px) {
+  /* Barras de meta diária */
+  .badge {
+    min-width: 100%; /* cada uma ocupa uma linha */
     text-align: center;
+    margin-bottom: 6px;
   }
 
-  .brand .title {
-    font-size: 22px;
-  }
-
+  /* Botões de refeição */
   .meal-buttons {
     flex-wrap: wrap;
-    gap: 8px;
   }
-
   .meal-buttons .chip {
-    flex: 1 1 45%; /* dois botões por linha */
+    flex: 1 1 48%; /* 2 por linha */
+    margin-bottom: 6px;
     text-align: center;
   }
 
-  .grid-3 {
-    grid-template-columns: 1fr;
-    gap: 10px;
+  /* Cartões */
+  .card {
+    padding: 14px;
+    border-radius: 10px;
   }
 
+  /* Tabelas */
   .table-scroll {
     overflow-x: auto;
   }
-
-  .table th,
-  .table td {
-    font-size: 13px;
+  .table th, .table td {
+    font-size: 12px;
     padding: 6px;
   }
 
+  /* Botões principais */
   .btn, .chip {
-    padding: 14px 16px;
     font-size: 15px;
+    padding: 14px;
   }
 }
 </style>
