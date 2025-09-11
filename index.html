@@ -65,6 +65,55 @@
 .small-muted{color:var(--muted);font-size:13px}
 .footer-note{font-size:12px;color:var(--muted);margin-top:8px}
 .table-scroll{max-height:420px;overflow:auto}
+.table-scroll{max-height:420px;overflow:auto}
+
+/* === Ajustes responsivos para celular/tablet === */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+
+  .header {
+    flex-direction: column;
+    height: auto;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .brand .title {
+    font-size: 22px;
+  }
+
+  .meal-buttons {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .meal-buttons .chip {
+    flex: 1 1 45%; /* dois botões por linha */
+    text-align: center;
+  }
+
+  .grid-3 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  .table th,
+  .table td {
+    font-size: 13px;
+    padding: 6px;
+  }
+
+  .btn, .chip {
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+}
 </style>
 </head>
 <body>
