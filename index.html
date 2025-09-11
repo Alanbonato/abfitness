@@ -1470,6 +1470,44 @@ onAuthStateChanged(auth, async (user) => {
 </script>
 <!-- ===== /ABNUTRI ===== -->
 
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  projectId: "SEU_PROJETO",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "XXXXXXX",
+  appId: "XXXXXXXXXXXX"
+};
+
+// Inicializa Firebase e Auth
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Listener de autenticação
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("[ABNUTRI] Logado:", user.uid);
+  } else {
+    console.log("[ABNUTRI] Não logado.");
+  }
+});
+
+// Logout handler (procura botão com id 'logoutBtn')
+document.getElementById("logoutBtn")?.addEventListener("click", async () => {
+  try {
+    await signOut(auth);
+    console.log("[ABNUTRI] Usuário deslogado.");
+  } catch (err) {
+    console.error("Erro ao deslogar:", err);
+  }
+});
+</script>
+
 </body>
 
 </html>
