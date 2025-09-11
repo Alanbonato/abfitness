@@ -18,7 +18,7 @@
   label{display:block;margin:.35rem 0 .35rem;font-weight:800;color:#d7dce3}
   input,select,button{font-size:15px} input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #20252a;background:#0b0d0f;color:#e7ebf1}
   input:focus,select:focus{outline:none;border-color:#3a4046;box-shadow:0 0 0 3px rgba(245,158,11,.14)}
-  .grid{display:grid;gap:12px} @media(min-width:930px){.grid-3{grid-template-columns:1.2fr 1fr 1fr}.grid-2{grid-template-columns:1fr 1fr}.grid-4{grid-template-columns:repeat(4,1fr)}}
+  .grid{display:grid;gap:12px} @media(min-width:930px){.grid-3{grid-template-columns:1.2fr 1fr 1fr}.grid-2{grid-template-columns:1fr 1fr}.grid-4{grid-template-columns:repeat(4,1fr)}
   .btn{cursor:pointer;padding:12px 16px;border-radius:12px;border:1px solid #2a2e33;font-weight:900;letter-spacing:.2px}
   .btn.primary{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#111;border:none} .btn.secondary{background:#13161a;color:#e7ebf1} .btn.ghost{background:#0b0d0f;border:1px dashed #2a2f35;color:#cbd1d8}
   .muted{color:var(--muted);font-size:12px}
@@ -55,7 +55,6 @@
     createUserWithEmailAndPassword, 
     signOut 
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { 
     getFirestore, 
     doc, 
     setDoc, 
@@ -75,8 +74,7 @@
   };
 
   // Inicialização global
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+  const app = const auth = getAuth(app);
   const db = getFirestore(app);
 
   // Monitor de login único
@@ -263,7 +261,7 @@ const foodSelect=$("foodSelect"), searchFood=$("searchFood"), qtyInput=$("qty"),
 function fillFoodSelect(filter=""){
   const term=filter.trim().toLowerCase();
   foodSelect.innerHTML="";
-  FOODS.forEach((f,i)=>{ if(!term || f.name.toLowerCase().includes(term)){ const o=document.createElement("option"); o.value=i; o.textContent=f.name; foodSelect.appendChild(o); }});
+  FOODS.forEach((f,i)=>{ if(!term || f.name.toLowerCase().includes(term)){ const o=document.createElement("option"); o.value=i; o.textContent=f.name; foodSelect.appendChild(o); });
   if(foodSelect.options.length===0){ const o=document.createElement("option"); o.value=""; o.textContent="(banco vazio / nenhum encontrado)"; foodSelect.appendChild(o); }
 }
 fillFoodSelect(); searchFood.addEventListener("input",e=>fillFoodSelect(e.target.value));
@@ -646,8 +644,7 @@ const firebaseConfig = {
 };
 
 // Inicialização
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const app = const auth = getAuth(app);
 const db = getFirestore(app);
 
 // --- Funções Firestore ---
@@ -734,9 +731,6 @@ if (addFoodBtn) {
 
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Configuração do Firebase
 const firebaseConfig = {
