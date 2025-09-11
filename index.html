@@ -69,42 +69,68 @@
 
 /* === Ajustes responsivos para celular/tablet === */
 @media (max-width: 480px) {
-  /* Barras de meta diária */
-  .badge {
-    min-width: 100%; /* cada uma ocupa uma linha */
-    text-align: center;
-    margin-bottom: 6px;
+  /* Cards ocupam largura cheia */
+  .card {
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 12px;
   }
 
-  /* Botões de refeição */
+  /* Barras (Meta diária, Consumido, Restante) em coluna */
+  .right {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .badge {
+    min-width: 100%;
+    text-align: center;
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  /* Botões de refeições em 2 colunas */
   .meal-buttons {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
   .meal-buttons .chip {
-    flex: 1 1 48%; /* 2 por linha */
-    margin-bottom: 6px;
+    width: 100%;
     text-align: center;
   }
 
-  /* Cartões */
-  .card {
+  /* Inputs e botões de ação em coluna */
+  .flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #foodSelect, #foodQty {
+    width: 100% !important;
+  }
+
+  /* Botões principais maiores */
+  .btn, .chip {
+    font-size: 16px;
     padding: 14px;
     border-radius: 10px;
   }
 
-  /* Tabelas */
+  /* Resumo do dia em 2 colunas */
+  #page-registro .flex {
+    flex-wrap: wrap;
+  }
+  #page-registro .badge {
+    flex: 1 1 45%;
+  }
+
+  /* Tabelas com scroll */
   .table-scroll {
     overflow-x: auto;
   }
   .table th, .table td {
     font-size: 12px;
     padding: 6px;
-  }
-
-  /* Botões principais */
-  .btn, .chip {
-    font-size: 15px;
-    padding: 14px;
   }
 }
 </style>
