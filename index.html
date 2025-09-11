@@ -26,8 +26,8 @@
 .logo{width:84px;height:84px;border-radius:8px;background:linear-gradient(135deg,#222,#111);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:28px;color:var(--accent)}
 .title{font-size:28px;color:var(--accent);font-weight:800}
 .topnav{margin-left:auto;display:flex;gap:10px;align-items:center}
-.chip{background:#0b0d0f;border:1px solid #222;padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:800;color:#fff;}
-.chip.active{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#111;}
+.chip{background:#0b0d0f;border:1px solid #222;padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:800}
+.chip.active{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#111}
 .container{max-width:1100px;margin:22px auto;padding:18px}
 .card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid var(--line);border-radius:14px;padding:18px}
 .center-screen{height:92vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}
@@ -417,14 +417,8 @@ async function loadBank(){
   const snap = await getDocs(collection(db, uidPath(currentUser.uid), 'bank'));
   snap.forEach(docu=>{
     const data = docu.data();
-    const prot = (data.prot !== undefined) ? data.prot : (data.p !== undefined ? data.p : 0);
-    const carb = (data.carb !== undefined) ? data.carb : (data.c !== undefined ? data.c : 0);
-    const fat = (data.fat !== undefined) ? data.fat : (data.f !== undefined ? data.f : 0);
-    const kcal = (data.kcal !== undefined) ? data.kcal : calcKcalFromMacros(prot, carb, fat);
-    bankCache.push({ id: docu.id, name: data.name, prot: prot, carb: carb, fat: fat, kcal: kcal });
+    bankCache.push({ id: docu.id, name: data.name, prot: data.prot||0, carb: data.carb||0, fat: data.fat||0, kcal: data.kcal||calcKcalFromMacros(data.prot||0,data.carb||0,data.fat||0) });
   });
-  // ordena alfabeticamente
-  bankCache.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
   renderBank();
   populateFoodSelect();
   renderAudit();
@@ -500,30 +494,70 @@ document.getElementById('exportBank').addEventListener('click', async ()=>{
 document.getElementById('importBank').addEventListener('click', ()=>{
   const f = document.createElement('input'); f.type='file'; f.accept='.json';
   f.onchange = async ()=>{
-    const file = f.files[0]; 
-    const txt = await file.text(); 
-    try { 
-      let arr = JSON.parse(txt); 
-      // converte p/c/f para prot/carb/fat
-      arr = arr.map(it => {
-        const prot = it.prot ?? it.p ?? 0;
-        const carb = it.carb ?? it.c ?? 0;
-        const fat  = it.fat  ?? it.f ?? 0;
-        const kcal = it.kcal ?? calcKcalFromMacros(prot, carb, fat);
-        return { name: it.name, prot, carb, fat, kcal };
-      });
-      // ordena alfabeticamente
-      arr.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
-      // salva no banco
-      for(const it of arr){ 
-        await addDoc(collection(db, uidPath(currentUser.uid), 'bank'), it); 
-      }
-      await loadBank(); 
-      alert('Banco importado com sucesso');
-    } catch(e){ alert('Erro ao importar: '+e.message); }
-  }; 
-  f.click();
-});addToRegistroBtn.addEventListener('click', async ()=>{
+    const file = f.files[0]; const txt = await file.text(); try{ const arr=JSON.parse(txt); for(const it of arr){ await addDoc(collection(db, uidPath(currentUser.uid), 'bank'), { name: it.name, prot: it.prot||0, carb: it.carb||0, fat: it.fat||0, kcal: it.kcal||calcKcalFromMacros(it.prot||0,it.carb||0,it.fat||0) }); } await loadBank(); alert('Importado'); }catch(e){alert('Erro ao importar: '+e.message)}
+  }; f.click();
+});
+
+document.getElementById('clearBank').addEventListener('click', async ()=>{
+  if(!confirm('Excluir todo banco?')) return;
+  const snap = await getDocs(collection(db, uidPath(currentUser.uid), 'bank'));
+  for(const d of snap.docs) await deleteDoc(doc(db, uidPath(currentUser.uid), 'bank', d.id));
+  await loadBank();
+});
+
+/* Registro */
+registroDate.addEventListener('change', async ()=>{ if(!currentUser) return; await loadDay(registroDate.value); });
+
+async function loadDay(dateStr){
+  if(!currentUser) return;
+  if(!dateStr) dateStr = dateToYMD(new Date());
+  const ddoc = await getDoc(dayDoc(currentUser.uid, dateStr));
+  if(ddoc.exists()) currentDayData = ddoc.data(); else currentDayData = { meals: {} };
+  renderDay();
+}
+
+function renderDay(){
+  populateFoodSelect(searchFood.value);
+  renderMealItems();
+  computeDaySummary();
+  metaDia.textContent = 'Meta diária: ' + (window.userMeta?.meta||0) + ' kcal';
+}
+
+function getMealList(meal){ return currentDayData.meals?.[meal] || []; }
+
+function renderMealItems(){
+  mealItemsTable.innerHTML = '';
+  const items = getMealList(selectedMeal);
+  items.forEach((it, idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${it.name}</td><td>${it.qty}</td><td>${it.prot.toFixed(2)}</td><td>${it.carb.toFixed(2)}</td><td>${it.fat.toFixed(2)}</td><td>${it.kcal}</td><td><button class="chip" data-idx="${idx}" data-act="rem">Remover</button></td>`;
+    mealItemsTable.appendChild(tr);
+  });
+}
+
+mealItemsTable.addEventListener('click', async (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const idx = parseInt(btn.dataset.idx);
+  const act = btn.dataset.act;
+  if(act==='rem'){
+    const arr = getMealList(selectedMeal);
+    arr.splice(idx,1);
+    currentDayData.meals[selectedMeal]=arr;
+    renderMealItems(); computeDaySummary();
+  }
+});
+
+document.querySelectorAll('.meal').forEach(b=>{
+  b.addEventListener('click', (ev)=>{
+    selectedMeal = ev.target.dataset.meal;
+    document.querySelectorAll('.meal').forEach(m=>m.classList.remove('active'));
+    ev.target.classList.add('active');
+    renderMealItems();
+  });
+});
+
+addToRegistroBtn.addEventListener('click', async ()=>{
   const foodId = foodSelect.value;
   const qty = parseFloat(foodQty.value);
   if(!foodId || !qty){ alert('Selecione alimento e quantidade'); return; }
