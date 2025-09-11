@@ -492,9 +492,36 @@ document.getElementById('exportBank').addEventListener('click', async ()=>{
 });
 
 document.getElementById('importBank').addEventListener('click', ()=>{
-  const f = document.createElement('input'); f.type='file'; f.accept='.json';
+  const f = document.createElement('input'); 
+  f.type='file'; 
+  f.accept='.json';
   f.onchange = async ()=>{
-    const file = f.files[0]; const txt = await file.text(); try{ const arr=JSON.parse(txt); for(const it of arr){ await addDoc(collection(db, uidPath(currentUser.uid), 'bank'), { name: it.name, prot: it.prot||0, carb: it.carb||0, fat: it.fat||0, kcal: it.kcal||calcKcalFromMacros(it.prot||0,it.carb||0,it.fat||0) }); } await loadBank(); alert('Importado'); }catch(e){alert('Erro ao importar: '+e.message)}
+    const file = f.files[0]; 
+    const txt = await file.text(); 
+    try { 
+      let arr = JSON.parse(txt); 
+      // garante valores corretos
+      arr = arr.map(it => ({
+        name: it.name || '',
+        prot: parseFloat(it.prot) || 0,
+        carb: parseFloat(it.carb) || 0,
+        fat: parseFloat(it.fat) || 0,
+        kcal: it.kcal ? parseInt(it.kcal) : calcKcalFromMacros(parseFloat(it.prot)||0, parseFloat(it.carb)||0, parseFloat(it.fat)||0)
+      }));
+      // ordena alfabeticamente
+      arr.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+      // salva no banco
+      for(const it of arr){
+        await addDoc(collection(db, uidPath(currentUser.uid), 'bank'), it);
+      }
+      await loadBank(); 
+      alert('Banco importado com sucesso');
+    } catch(e){ 
+      alert('Erro ao importar: '+e.message);
+    }
+  }; 
+  f.click();
+}); } await loadBank(); alert('Importado'); }catch(e){alert('Erro ao importar: '+e.message)}
   }; f.click();
 });
 
