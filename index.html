@@ -1,16 +1,24 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AB Fitness</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AB Nutri</title>
 </head>
 <body>
-  <h1>AB Fitness</h1>
+  <h1>AB Nutri - App</h1>
 
-  <!-- Firebase App e módulos -->
+  <!-- Exemplo de formulário simples -->
+  <div id="login">
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Senha">
+    <button id="btnLogin">Login</button>
+    <button id="btnRegister">Cadastrar</button>
+    <button id="btnLogout">Sair</button>
+  </div>
+
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { app } from "./firebase-config.js";
     import { 
       getAuth, 
       onAuthStateChanged, 
@@ -22,19 +30,51 @@
       getFirestore, 
       doc, 
       setDoc, 
-      getDoc, 
-      serverTimestamp 
+      getDoc 
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Importa as credenciais do Firebase (sem export)
-    import "./firebase-config.js";
-
-    // Inicializa o Firebase
-    const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    console.log("🔥 Firebase inicializado com sucesso!");
+    // Observa autenticação
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log("Usuário logado:", user.uid);
+      } else {
+        console.log("Nenhum usuário logado");
+      }
+    });
+
+    // Login
+    document.getElementById("btnLogin").addEventListener("click", async () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (e) {
+        console.error("Erro no login:", e.message);
+      }
+    });
+
+    // Cadastro
+    document.getElementById("btnRegister").addEventListener("click", async () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } catch (e) {
+        console.error("Erro no cadastro:", e.message);
+      }
+    });
+
+    // Logout
+    document.getElementById("btnLogout").addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+      } catch (e) {
+        console.error("Erro no logout:", e.message);
+      }
+    });
   </script>
 </body>
 </html>
