@@ -151,16 +151,16 @@
 <main id="app">
   <section id="loginScreen" class="center-screen">
     <div class="card login-card">
-      <div style="text-align:center;margin-bottom:8px"><img src="abnutri_logo.png" alt="AB Logo" style="width:120px;margin-bottom:8px"><div class="small-muted">Controle de calorias — faça login</div></div>
+      <div style="text-align:center;margin-bottom:8px"><img src="abnutri_logo.png" alt="AB Logo" style="width:120px;margin-bottom:8px"><div class="small-muted">Controle diário de calorias — faça login</div></div>
       <input id="email" class="input" placeholder="Email" />
       <input id="password" class="input" placeholder="Senha" type="password" />
       <div style="display:flex;gap:10px;margin-top:8px">
         <button id="loginBtn" class="btn">Entrar</button>
         <button id="registerBtn" class="btn ghost">Cadastrar</button>
       </div>
-      <div class="footer-note">Serviço em nuvem via Firebase — teste em localhost com firebaseConfig preenchido. </div>
+      <div class="footer-note">Se ainda não tem conta, clique em Cadastrar. </div>
     </div>
-    <div class="small-muted">Se ainda não tem conta, clique em Cadastrar.</div>
+    <div class="small-muted">“Uma forma simples e prática de cuidar da sua saúde todos os dias.”</div>
   </section>
 
   <!-- Main container -->
@@ -333,13 +333,19 @@
       <div style="flex:1"><label class="small-muted">Gordura (g)</label><input id="newFoodFat" class="input"/></div>
     </div>
     <label class="small-muted">Kcal (opcional)</label><input id="newFoodKcal" class="input" placeholder="Se vazio calculo 4/4/9"/>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+    
+<button id="scanBarcodeBtn" class="chip">📷 Escanear código</button>
+<div id="barcodeScanner" style="display:none; margin-top:10px;">
+  <video id="barcodeVideo" style="width:100%; border:1px solid #333; border-radius:8px;"></video>
+</div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
       <button id="cancelAddFood" class="chip">Cancelar</button>
       <button id="saveFoodBtn" class="btn">Salvar</button>
     </div>
   </div>
 </div></div>
 
+<script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -690,6 +696,58 @@ function computeDaySummary(){
   const metaVal = window.userMeta?.meta || 0;
   restante.textContent = 'Restante: ' + Math.round(metaVal - k) + ' kcal';
 }
+
+
+/* Barcode Scanner Integration */
+const scanBtn = document.getElementById("scanBarcodeBtn");
+const barcodeDiv = document.getElementById("barcodeScanner");
+const barcodeVideo = document.getElementById("barcodeVideo");
+
+scanBtn.addEventListener("click", () => {
+  barcodeDiv.style.display = "block";
+
+  Quagga.init({
+    inputStream: {
+      type: "LiveStream",
+      target: barcodeVideo,
+      constraints: {
+        facingMode: "environment"
+      }
+    },
+    decoder: {
+      readers: ["ean_reader", "ean_8_reader", "upc_reader", "code_128_reader"]
+    }
+  }, function(err) {
+      if (err) { console.error(err); alert("Erro ao abrir câmera: " + err.message); return; }
+      Quagga.start();
+  });
+
+  Quagga.onDetected(async (result) => {
+    const code = result.codeResult.code;
+    console.log("Código detectado:", code);
+    Quagga.stop();
+    barcodeDiv.style.display = "none";
+
+    try {
+      const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+      const data = await res.json();
+
+      if(data.status === 1){
+        const p = data.product;
+        newFoodName.value = p.product_name || "";
+        newFoodProt.value = p.nutriments.proteins_100g || 0;
+        newFoodCarb.value = p.nutriments.carbohydrates_100g || 0;
+        newFoodFat.value = p.nutriments.fat_100g || 0;
+        newFoodKcal.value = p.nutriments["energy-kcal_100g"] || 0;
+        alert("Alimento encontrado e preenchido automaticamente!");
+      } else {
+        alert("Produto não encontrado na base Open Food Facts.");
+      }
+    } catch(e){
+      alert("Erro ao buscar informações: " + e.message);
+    }
+  });
+});
 
 /* Meta logic */
 let windowMetaLoaded = false;
