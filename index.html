@@ -134,6 +134,53 @@
   }
 }
 </style>
+
+<script type="module">
+  import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/browser@latest/+esm";
+  window.BrowserMultiFormatReader = BrowserMultiFormatReader;
+
+/* === Barcode Scanner + Open Food Facts === */
+const scanBtn = document.getElementById('scanBarcodeBtn');
+const preview = document.getElementById('previewScanner');
+
+let codeReader = null;
+
+scanBtn?.addEventListener('click', async () => {
+  if (!codeReader) codeReader = new window.BrowserMultiFormatReader();
+  preview.style.display = 'block';
+
+  try {
+    const result = await codeReader.decodeOnceFromVideoDevice(undefined, preview);
+    const barcode = result.text;
+    alert("Código lido: " + barcode);
+
+    // Buscar produto na Open Food Facts
+    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+    const data = await res.json();
+
+    if (data.status === 1) {
+      const p = data.product;
+      newFoodName.value = p.product_name || '';
+      newFoodProt.value = p.nutriments.proteins_100g || '';
+      newFoodCarb.value = p.nutriments.carbohydrates_100g || '';
+      newFoodFat.value = p.nutriments.fat_100g || '';
+      newFoodKcal.value = p.nutriments['energy-kcal_100g'] || '';
+
+      alert("Dados preenchidos automaticamente!");
+    } else {
+      alert("Produto não encontrado no banco do Open Food Facts.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao escanear: " + err);
+  } finally {
+    preview.style.display = 'none';
+    codeReader.reset();
+  }
+});
+
+</script>
+
 </head>
 <body>
 <header class="header">
@@ -323,6 +370,10 @@
 <div id="foodModal" class="modal"><div class="modal-card">
   <div style="display:flex;align-items:center;justify-content:space-between"><div class="section-title">Adicionar alimento</div><button id="closeFoodModal" class="chip">Fechar</button></div>
   <div style="margin-top:8px">
+    
+<button id="scanBarcodeBtn" class="chip" style="margin-bottom:8px">📷 Escanear código</button>
+<video id="previewScanner" style="width:100%;max-height:260px;display:none;border-radius:8px;margin-bottom:8px"></video>
+
     <label class="small-muted">Nome do alimento</label><input id="newFoodName" class="input"/>
     <label class="small-muted">Tipo de base</label>
     <select id="newFoodBase" class="input"><option value="100">por 100 g/ml</option><option value="unit">unidade</option></select>
@@ -333,17 +384,13 @@
       <div style="flex:1"><label class="small-muted">Gordura (g)</label><input id="newFoodFat" class="input"/></div>
     </div>
     <label class="small-muted">Kcal (opcional)</label><input id="newFoodKcal" class="input" placeholder="Se vazio calculo 4/4/9"/>
-    
-<button id="scanBarcodeBtn" class="chip">📷 Escanear código</button>
-<div id="barcodeScanner" style="display:none; width:100%; height:300px; border:1px solid #333; border-radius:8px; margin-top:10px;"></div>
-<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
       <button id="cancelAddFood" class="chip">Cancelar</button>
       <button id="saveFoodBtn" class="btn">Salvar</button>
     </div>
   </div>
 </div></div>
 
-<script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -793,6 +840,47 @@ document.querySelectorAll('.topnav .chip[data-page]').forEach(ch=>{
 showPage('registro');
 
 window._ab = { loadBank, loadDay, calcKcalFromMacros };
+
+
+/* === Barcode Scanner + Open Food Facts === */
+const scanBtn = document.getElementById('scanBarcodeBtn');
+const preview = document.getElementById('previewScanner');
+
+let codeReader = null;
+
+scanBtn?.addEventListener('click', async () => {
+  if (!codeReader) codeReader = new window.BrowserMultiFormatReader();
+  preview.style.display = 'block';
+
+  try {
+    const result = await codeReader.decodeOnceFromVideoDevice(undefined, preview);
+    const barcode = result.text;
+    alert("Código lido: " + barcode);
+
+    // Buscar produto na Open Food Facts
+    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+    const data = await res.json();
+
+    if (data.status === 1) {
+      const p = data.product;
+      newFoodName.value = p.product_name || '';
+      newFoodProt.value = p.nutriments.proteins_100g || '';
+      newFoodCarb.value = p.nutriments.carbohydrates_100g || '';
+      newFoodFat.value = p.nutriments.fat_100g || '';
+      newFoodKcal.value = p.nutriments['energy-kcal_100g'] || '';
+
+      alert("Dados preenchidos automaticamente!");
+    } else {
+      alert("Produto não encontrado no banco do Open Food Facts.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao escanear: " + err);
+  } finally {
+    preview.style.display = 'none';
+    codeReader.reset();
+  }
+});
 
 </script>
 </body>
