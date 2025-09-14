@@ -49,6 +49,8 @@
 .btn.ghost{background:transparent;border:1px solid #2a2f35;color:var(--text)}
 .grid{display:grid;gap:12px}
 .grid-3{grid-template-columns:1fr 1fr 1fr}
+.grid-4{grid-template-columns:1fr 1fr 1fr 1fr
+  align-items: start;}
 .section-title{color:#ffd089;font-weight:800;margin-bottom:8px}
 .small{font-size:13px;color:var(--muted)}
 .table{width:100%;border-collapse:collapse;margin-top:12px}
@@ -331,7 +333,7 @@ scanBtn?.addEventListener('click', async () => {
       <!-- Metabolismo page -->
       <div id="page-metabolismo" class="card" style="display:none">
         <div class="section-title">Metabolismo e Meta</div>
-        <div class="grid grid-3" style="margin-bottom:10px">
+        <div class="grid grid-4" style="margin-bottom:10px">
           <div>
             <label class="small-muted">Nome (opcional)</label>
             <input id="metaNome" class="input"/>
@@ -366,7 +368,17 @@ scanBtn?.addEventListener('click', async () => {
             <label class="small-muted">Musculação (h)</label>
             <input id="metaMusculacao" class="input" placeholder="0"/>
           </div>
-        </div>
+        
+          <div>
+            <div class="section-title">Medidas Corporais</div>
+            <label class="small-muted">Cintura (cm)</label>
+            <input id="metaCintura" class="input" placeholder="80"/>
+            <label class="small-muted">Pescoço (cm)</label>
+            <input id="metaPescoco" class="input" placeholder="40"/>
+            <label class="small-muted">Quadril (cm, apenas mulheres)</label>
+            <input id="metaQuadril" class="input" placeholder="90"/>
+          </div>
+</div>
 
         <div style="display:flex;gap:10px;align-items:center">
           <button id="calcMeta" class="btn">Calcular</button>
@@ -379,6 +391,7 @@ scanBtn?.addEventListener('click', async () => {
           <div class="badge" id="muscuBadge">Musculação<br><strong>0 kcal</strong></div>
           <div class="badge" id="tdeeBadge">TDEE<br><strong>0 kcal</strong></div>
           <div class="badge" id="metaBadge">Meta<br><strong>0 kcal</strong></div>
+          <div class="badge" id="bfBadge">BF<br><strong>0 %</strong></div>
         </div>
 
       </div>
@@ -495,6 +508,10 @@ const metaIdade = document.getElementById('metaIdade');
 const metaPeso = document.getElementById('metaPeso');
 const metaMusculacao = document.getElementById('metaMusculacao');
 const metaObjetivo = document.getElementById('metaObjetivo');
+const metaCintura = document.getElementById('metaCintura');
+const metaPescoco = document.getElementById('metaPescoco');
+const metaQuadril = document.getElementById('metaQuadril');
+const bfBadge = document.getElementById('bfBadge');
 
 let currentUser = null;
 let selectedMeal = 'cafedamanha';
@@ -792,6 +809,19 @@ calcMetaBtn.addEventListener('click', ()=>{
   tdeeBadge.innerHTML = 'TDEE<br><strong>'+tdee+' kcal</strong>';
   metaBadge.innerHTML = 'Meta<br><strong>'+meta+' kcal</strong>';
   window.userMetaCalc = { tmb, esteira, muscu, tdee, meta };
+  // === Calcular BF ===
+  let bf = 0;
+  const cintura = parseFloat(metaCintura.value)||0;
+  const pescoco = parseFloat(metaPescoco.value)||0;
+  const quadril = parseFloat(metaQuadril.value)||0;
+  if(sexo==='M' && cintura>0 && pescoco>0 && altura>0){
+    bf = 495 / (1.0324 - 0.19077 * Math.log10(cintura - pescoco) + 0.15456 * Math.log10(altura)) - 450;
+  } else if(sexo==='F' && cintura>0 && pescoco>0 && quadril>0 && altura>0){
+    bf = 495 / (1.29579 - 0.35004 * Math.log10(cintura + quadril - pescoco) + 0.22100 * Math.log10(altura)) - 450;
+  }
+  bf = Math.max(0, Math.round(bf*10)/10);
+  bfBadge.innerHTML = 'BF<br><strong>'+bf+' %</strong>';
+  window.userMetaCalc.bf = bf;
 });
 
 aplicarMeta.addEventListener('click', async ()=>{
@@ -810,6 +840,7 @@ aplicarMeta.addEventListener('click', async ()=>{
     tmb: window.userMetaCalc.tmb,
     tdee: window.userMetaCalc.tdee,
     meta: window.userMetaCalc.meta,
+    bf: window.userMetaCalc.bf,
     updatedAt: new Date().toISOString()
   };
   await setDoc(metaDoc(currentUser.uid), payload);
@@ -835,6 +866,7 @@ async function loadMeta(){
     tdeeBadge.innerHTML = 'TDEE<br><strong>'+(window.userMeta.tdee||0)+' kcal</strong>';
     metaBadge.innerHTML = 'Meta<br><strong>'+(window.userMeta.meta||0)+' kcal</strong>';
     window.userMeta = window.userMeta;
+    if(window.userMeta.bf){ bfBadge.innerHTML = 'BF<br><strong>'+window.userMeta.bf+' %</strong>'; }
   } else {
     window.userMeta = null;
   }
