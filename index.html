@@ -196,11 +196,21 @@ scanBtn?.addEventListener('click', async () => {
   } catch (err) {
     console.error(err);
     alert("Erro ao escanear: " + err);
-  } finally {
-    preview.style.display = 'none';
+ } finally {
+  preview.style.display = 'none';
+
+  // Parar todas as tracks da câmera (necessário no iPhone)
+  if (preview.srcObject) {
+    preview.srcObject.getTracks().forEach(track => track.stop());
+    preview.srcObject = null;
+  }
+
+  if (codeReader) {
     codeReader.reset();
   }
+}
 });
+
 
 </script>
 
@@ -678,8 +688,54 @@ bankTable.addEventListener('click', async (e)=>{
   }
 });
 
+// Listener para corrigir itens suspeitos na Auditoria
+auditTable.addEventListener('click', async (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  const act = btn.dataset.act;
+  const item = bankCache.find(b=>b.id===id);
+  
+  if(act === 'audit-corr' && item){
+    // Preenche modal com os dados do alimento
+    newFoodName.value = item.name;
+    newFoodProt.value = item.prot;
+    newFoodCarb.value = item.carb;
+    newFoodFat.value = item.fat;
+    newFoodKcal.value = item.kcal;
+    newFoodBase.value = '100';
+    newFoodBaseQty.value = '';
+
+    foodModal.classList.add('open');
+    
+    // Ao salvar, atualiza o item no banco
+    saveFoodBtn.onclick = async ()=>{
+      await updateDoc(doc(db, uidPath(currentUser.uid), 'bank', id), {
+        name: newFoodName.value.trim(),
+        prot: parseFloat(newFoodProt.value)||0,
+        carb: parseFloat(newFoodCarb.value)||0,
+        fat: parseFloat(newFoodFat.value)||0,
+        kcal: parseInt(newFoodKcal.value) || calcKcalFromMacros(
+          parseFloat(newFoodProt.value)||0,
+          parseFloat(newFoodCarb.value)||0,
+          parseFloat(newFoodFat.value)||0
+        )
+      });
+      foodModal.classList.remove('open'); 
+      await loadBank();
+    };
+  }
+});
+
+
 openAddFood.addEventListener('click', ()=>{ newFoodName.value=''; newFoodProt.value=''; newFoodCarb.value=''; newFoodFat.value=''; newFoodKcal.value=''; newFoodBaseQty.value=''; foodModal.classList.add('open'); saveFoodBtn.onclick = createFood; });
 closeFoodModal.addEventListener('click', ()=>foodModal.classList.remove('open'));
+
+document.getElementById('cancelAddFood').addEventListener('click', ()=>{
+  foodModal.classList.remove('open');
+});
+
+
 async function createFood(){
   const name = newFoodName.value.trim();
   if(!name){ alert('Nome obrigatório'); return; }
@@ -778,6 +834,18 @@ addToRegistroBtn.addEventListener('click', async ()=>{
   currentDayData.meals[selectedMeal]=arr;
   renderMealItems(); computeDaySummary();
 });
+
+// Filtro de alimentos conforme digita
+searchFood.addEventListener('input', () => {
+  populateFoodSelect(searchFood.value);
+
+  // Selecionar automaticamente o primeiro item encontrado
+  if (foodSelect.options.length > 1) {
+    foodSelect.selectedIndex = 1; // pula o "-- selecione --"
+  }
+});
+
+
 
 document.getElementById('saveDayBtn').addEventListener('click', async ()=>{
   if(!currentUser) return;
