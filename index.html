@@ -802,14 +802,23 @@ async function loadDay(dateStr){
   if(!currentUser) return;
   if(!dateStr) dateStr = dateToYMD(new Date());
   const ddoc = await getDoc(dayDoc(currentUser.uid, dateStr));
-  if(ddoc.exists()) currentDayData = ddoc.data(); else currentDayData = { meals: {} };
+  if(ddoc.exists()){
+    currentDayData = ddoc.data();
+  } else {
+    currentDayData = { meals: {} };
+  }
+  // garante que o campo exista
+  currentDayData.aguaConsumida = currentDayData.aguaConsumida || 0;
   renderDay();
+  // Atualiza UI de água
+  atualizarStatusAgua();
 }
 
 function renderDay(){
-  populateFoodSelect(searchFood.value);
+populateFoodSelect(searchFood.value);
   renderMealItems();
   computeDaySummary();
+  atualizarStatusAgua();
   metaDia.textContent = 'Meta diária: ' + (window.userMeta?.meta||0) + ' kcal';
 }
 
@@ -874,10 +883,13 @@ searchFood.addEventListener('input', () => {
 
 
 document.getElementById('saveDayBtn').addEventListener('click', async ()=>{
-  if(!currentUser) return;
-  const dateStr = registroDate.value || dateToYMD(new Date());
-  await setDoc(dayDoc(currentUser.uid,dateStr), currentDayData);
-  alert('Dia salvo');
+  if(!currentUser) return alert('Faça login para salvar o dia.');
+  try {
+    const dateStr = registroDate.value || dateToYMD(new Date());
+    currentDayData.date = dateStr;
+    await setDoc(dayDoc(currentUser.uid,dateStr), currentDayData);
+    alert('Dia salvo');
+  } catch(err){ console.error(err); alert('Erro ao salvar o dia: '+(err.message||err)); }
 });
 
 function computeDaySummary(){
@@ -1103,46 +1115,90 @@ function generatePdfFromElement(element){
 
 
 // ==========================
-// Controle de Água e Lembrete
+// Controle de Água persistente + Lembrete
 // ==========================
-let aguaConsumida = 0;
 
 function atualizarStatusAgua(){
   const meta = window.userMeta?.metaAgua || 0;
-  document.getElementById('aguaStatus').textContent =
-    `${aguaConsumida} ml de ${meta} ml`;
+  const qtd = (currentDayData && currentDayData.aguaConsumida) ? currentDayData.aguaConsumida : 0;
+  const el = document.getElementById('aguaStatus');
+  if(el) el.textContent = `${qtd} ml de ${meta} ml`;
 }
 
-// Adicionar ingestão de água
-document.getElementById('addAguaBtn')?.addEventListener('click', ()=>{
+async function salvarDiaAtual() {
+  if(!currentUser) return;
+  try {
+    const dateStr = registroDate.value || dateToYMD(new Date());
+    currentDayData.date = dateStr;
+    await setDoc(dayDoc(currentUser.uid, dateStr), currentDayData);
+  } catch (err) {
+    console.error('Erro ao salvar dia (água):', err);
+    alert('Erro ao salvar a água: ' + (err.message || err));
+  }
+}
+
+document.getElementById('addAguaBtn')?.addEventListener('click', async ()=>{
+  if(!currentUser) return alert('Faça login para registrar água.');
   const q = parseInt(document.getElementById('aguaInput').value)||0;
-  if(q <= 0) return alert('Informe uma quantidade válida');
-  aguaConsumida += q;
+  if(q <= 0) return alert('Informe uma quantidade válida (ml).');
+  currentDayData.aguaConsumida = (currentDayData.aguaConsumida || 0) + q;
   atualizarStatusAgua();
+  await salvarDiaAtual();
 });
 
-// Remover ingestão de água
-document.getElementById('removeAguaBtn')?.addEventListener('click', ()=>{
+document.getElementById('removeAguaBtn')?.addEventListener('click', async ()=>{
+  if(!currentUser) return alert('Faça login para editar água.');
   const q = parseInt(document.getElementById('aguaInput').value)||0;
-  if(q <= 0) return alert('Informe uma quantidade válida');
-  aguaConsumida -= q;
-  if(aguaConsumida < 0) aguaConsumida = 0;
+  if(q <= 0) return alert('Informe uma quantidade válida (ml).');
+  currentDayData.aguaConsumida = (currentDayData.aguaConsumida || 0) - q;
+  if(currentDayData.aguaConsumida < 0) currentDayData.aguaConsumida = 0;
   atualizarStatusAgua();
+  await salvarDiaAtual();
 });
 
+// cria botão reset se não existir
+if(!document.getElementById('resetAguaBtn')){
+  const resetBtn = document.createElement('button');
+  resetBtn.id = 'resetAguaBtn';
+  resetBtn.className = 'btn ghost';
+  resetBtn.style.flex = '1';
+  resetBtn.textContent = 'Resetar';
+  const container = document.querySelector('#aguaStatus')?.closest('.card')?.querySelector('.flex');
+  if(container) container.appendChild(resetBtn);
+  resetBtn.addEventListener('click', async ()=>{
+    if(!currentUser) return alert('Faça login para resetar água.');
+    if(!confirm('Resetar a ingestão de água do dia?')) return;
+    currentDayData.aguaConsumida = 0;
+    atualizarStatusAgua();
+    await salvarDiaAtual();
+  });
+} else {
+  // se existe, garante listener
+  document.getElementById('resetAguaBtn')?.addEventListener('click', async ()=>{
+    if(!currentUser) return alert('Faça login para resetar água.');
+    if(!confirm('Resetar a ingestão de água do dia?')) return;
+    currentDayData.aguaConsumida = 0;
+    atualizarStatusAgua();
+    await salvarDiaAtual();
+  });
+}
 
-// Iniciar lembrete de água
+// Iniciar lembrete de água (mantido)
 async function iniciarLembreteAgua(){
   const intervalo = window.userMeta?.metaAguaIntervalo || 0;
   if(intervalo <= 0) return;
 
-  const perm = await Notification.requestPermission();
-  if(perm !== "granted") return;
+  if("Notification" in window){
+    const perm = await Notification.requestPermission();
+    if(perm !== "granted") return;
+  }
 
   setInterval(()=>{
-    new Notification("Lembrete de Água 💧", {
-      body: "Hora de beber um copo de água!"
-    });
+    if("Notification" in window && Notification.permission === "granted"){
+      new Notification("Lembrete de Água 💧", {
+        body: "Hora de beber um copo de água!"
+      });
+    }
     const audio = new Audio("beep.mp3");
     audio.play().catch(()=>{});
   }, intervalo * 60 * 1000);
