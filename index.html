@@ -213,6 +213,7 @@ scanBtn?.addEventListener('click', async () => {
     <div class="chip" data-page="banco">Banco</div>
     <div class="chip" data-page="auditoria">Auditoria</div>
     <div class="chip" data-page="metabolismo">Metabolismo</div>
+    <div class="chip" data-page="exportar">Exportar</div>
     <div class="chip" id="logoutBtn" style="margin-left:18px;background:#0b0d0f;border:1px solid #222">Sair</div>
   </nav>
 </header>
@@ -331,6 +332,20 @@ scanBtn?.addEventListener('click', async () => {
       </div>
 
       <!-- Metabolismo page -->
+      <!-- Exportar page -->
+      <div id="page-exportar" class="card" style="display:none">
+        <div class="section-title">Exportar</div>
+        <div class="small-muted">Gere um preview em A4 com os dados do metabolismo e o registro do dia, ou baixe em PDF.</div>
+
+        <div style="margin-top:12px;display:flex;gap:12px">
+          <button id="btnPreview" class="btn">Gerar Preview</button>
+          <button id="btnPDF" class="btn ghost">Gerar PDF</button>
+        </div>
+
+        <div id="previewContainer" style="margin-top:20px;background:#fff;color:#000;padding:18px;border-radius:8px;display:none;max-width:800px"></div>
+      </div>
+
+    
       <div id="page-metabolismo" class="card" style="display:none">
         <div class="section-title">Metabolismo e Meta</div>
         <div class="grid grid-4" style="margin-bottom:10px">
@@ -459,6 +474,11 @@ const pageRegistro = document.getElementById('page-registro');
 const pageBanco = document.getElementById('page-banco');
 const pageAud = document.getElementById('page-auditoria');
 const pageMeta = document.getElementById('page-metabolismo');
+const pageExportar = document.getElementById('page-exportar');
+const btnPreview = document.getElementById('btnPreview');
+const btnPDF = document.getElementById('btnPDF');
+const previewContainer = document.getElementById('previewContainer');
+
 
 const registroDate = document.getElementById('registroDate');
 const foodSelect = document.getElementById('foodSelect');
@@ -532,6 +552,7 @@ function showPage(page){
   pageBanco.style.display = 'none';
   pageAud.style.display = 'none';
   pageMeta.style.display = 'none';
+  if(pageExportar) pageExportar.style.display = 'none';
   document.querySelectorAll('.topnav .chip').forEach(ch=>ch.classList.remove('active'));
   const chip = document.querySelector('.topnav .chip[data-page="'+page+'"]');
   if(chip) chip.classList.add('active');
@@ -539,6 +560,7 @@ function showPage(page){
   if(page==='banco') pageBanco.style.display='block';
   if(page==='auditoria') pageAud.style.display='block';
   if(page==='metabolismo') pageMeta.style.display='block';
+  if(page==='exportar') pageExportar.style.display='block';
 }
 
 /* Auth */
@@ -892,48 +914,102 @@ document.querySelectorAll('.topnav .chip[data-page]').forEach(ch=>{
 
 showPage('registro');
 
+
+/* === Export / Preview / PDF handlers === */
+const mealNames = {
+  cafedamanha: 'Café da manhã',
+  lanchmanha: 'Lanche manhã',
+  almoco: 'Almoço',
+  lanchetarde: 'Lanche tarde',
+  pretreino: 'Pré-treino',
+  postreino: 'Pós-treino',
+  jantar: 'Jantar'
+};
+
+if(btnPreview){
+  btnPreview.addEventListener('click', ()=>{
+    if(!currentUser) return alert('Faça login para gerar o preview.');
+    const meta = window.userMeta || {};
+    const day = currentDayData.meals || {};
+    // build HTML preview (A4-like)
+    let html = `<div style="font-family:Arial,Helvetica,sans-serif">`;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><h2 style="margin:0">Relatório Diário</h2><div style="color:#444">Gerado por AB Nutri</div></div><div style="text-align:right"><strong>${meta.nome||''}</strong><div style="font-size:12px;color:#333">${meta.sexo||''} • ${meta.idade||''} anos</div></div></div>`;
+
+    // Header metab
+    html += `<div style="border:1px solid #222;padding:10px;margin-bottom:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+  <div>
+    <strong>Dados do Aluno</strong><br/>
+    Nome: ${meta.nome||'-'}<br/>
+    Idade: ${meta.idade||'-'} anos • Sexo: ${meta.sexo||'-'}<br/>
+    Altura: ${meta.altura||'-'} cm • Peso: ${meta.peso||'-'} kg<br/>
+    TMB: ${meta.tmb||0} kcal • TDEE: ${meta.tdee||0} kcal • BF: ${meta.bf||0}%<br/>
+    Objetivo: ${meta.objetivo||'-'}
+  </div>
+  <img src="abnutri_logo.png" alt="Logo" style="width:80px;height:80px;object-fit:contain;border-radius:8px"/>
+</div>`;
+
+    html += `<div><strong>Registro de Refeições (${registroDate.value || ''})</strong></div>`;
+
+    let totalP=0, totalC=0, totalF=0, totalK=0;
+    for(const mealKey of Object.keys(mealNames)){
+      const items = day[mealKey] || [];
+      if(items.length===0) continue;
+      html += `<div style="margin-top:10px"><div style="font-weight:800;margin-bottom:6px">${mealNames[mealKey]}</div>`;
+      html += `<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="border:1px solid #ddd;padding:6px;text-align:left">Alimento</th><th style="border:1px solid #ddd;padding:6px">Qtd</th><th style="border:1px solid #ddd;padding:6px">Prot (g)</th><th style="border:1px solid #ddd;padding:6px">Carb (g)</th><th style="border:1px solid #ddd;padding:6px">Gord (g)</th><th style="border:1px solid #ddd;padding:6px">Kcal</th></tr></thead><tbody>`;
+      let mealP=0, mealC=0, mealF=0, mealK=0;
+      items.forEach(it=>{
+        html += `<tr><td style="border:1px solid #eee;padding:6px">${it.name}</td><td style="border:1px solid #eee;padding:6px">${it.qty}</td><td style="border:1px solid #eee;padding:6px">${it.prot.toFixed(1)}</td><td style="border:1px solid #eee;padding:6px">${it.carb.toFixed(1)}</td><td style="border:1px solid #eee;padding:6px">${it.fat.toFixed(1)}</td><td style="border:1px solid #eee;padding:6px">${it.kcal}</td></tr>`;
+        mealP += it.prot; mealC += it.carb; mealF += it.fat; mealK += it.kcal;
+      });
+      html += `</tbody></table>`;
+      html += `<div style="margin-top:6px;font-weight:700">Subtotal: Prot ${mealP.toFixed(1)} g • Carb ${mealC.toFixed(1)} g • Gord ${mealF.toFixed(1)} g • ${mealK} kcal</div>`;
+      html += `</div>`;
+      totalP += mealP; totalC += mealC; totalF += mealF; totalK += mealK;
+    }
+
+    html += `<div style="margin-top:14px;padding:10px;border-top:2px solid #222;font-weight:800">Total do dia: Prot ${totalP.toFixed(1)} g • Carb ${totalC.toFixed(1)} g • Gord ${totalF.toFixed(1)} g • ${totalK} kcal</div>`;
+
+    html += `</div>`;
+    previewContainer.innerHTML = html;
+    previewContainer.style.display = 'block';
+    // scroll to preview
+    previewContainer.scrollIntoView({behavior:'smooth'});
+  });
+}
+
+if(btnPDF){
+  btnPDF.addEventListener('click', ()=>{
+    if(!previewContainer || !previewContainer.innerHTML.trim()) return alert('Gere o preview primeiro.');
+    // ensure html2pdf is available
+    if(typeof window.html2pdf === 'undefined'){
+      // try to load library dynamically
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      s.onload = ()=> generatePdfFromElement(previewContainer);
+      s.onerror = ()=> alert('Não foi possível carregar a biblioteca de geração de PDF.');
+      document.body.appendChild(s);
+    } else {
+      generatePdfFromElement(previewContainer);
+    }
+  });
+}
+
+function generatePdfFromElement(element){
+  const opt = {
+    margin:       10,
+    filename:     `relatorio_${(registroDate.value||new Date().toISOString().slice(0,10))}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  try{
+    window.html2pdf().set(opt).from(element).save();
+  }catch(e){ console.error(e); alert('Erro ao gerar PDF: '+e.message); }
+}
+
+
 window._ab = { loadBank, loadDay, calcKcalFromMacros };
 
-
-/* === Barcode Scanner + Open Food Facts === */
-const scanBtn = document.getElementById('scanBarcodeBtn');
-const preview = document.getElementById('previewScanner');
-
-let codeReader = null;
-
-scanBtn?.addEventListener('click', async () => {
-  if (!codeReader) codeReader = new window.BrowserMultiFormatReader();
-  preview.style.display = 'block';
-
-  try {
-    const result = await codeReader.decodeOnceFromVideoDevice(undefined, preview);
-    const barcode = result.text;
-    alert("Código lido: " + barcode);
-
-    // Buscar produto na Open Food Facts
-    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-    const data = await res.json();
-
-    if (data.status === 1) {
-      const p = data.product;
-      newFoodName.value = p.product_name || '';
-      newFoodProt.value = p.nutriments.proteins_100g || '';
-      newFoodCarb.value = p.nutriments.carbohydrates_100g || '';
-      newFoodFat.value = p.nutriments.fat_100g || '';
-      newFoodKcal.value = p.nutriments['energy-kcal_100g'] || '';
-
-      alert("Dados preenchidos automaticamente!");
-    } else {
-      alert("Produto não encontrado no banco do Open Food Facts.");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Erro ao escanear: " + err);
-  } finally {
-    preview.style.display = 'none';
-    codeReader.reset();
-  }
-});
 
 </script>
 </body>
