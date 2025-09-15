@@ -300,6 +300,26 @@ scanBtn?.addEventListener('click', async () => {
           </div>
 
           <div style="margin-top:12px" class="card">
+<div class="section-title" style="display:flex;align-items:center;gap:6px">
+  <img src="copo.png" alt="Copo de água" style="width:22px;height:22px;object-fit:contain"/>
+  Água
+</div>
+
+
+<div class="card" style="margin-bottom:12px">
+  <div class="flex" style="gap:8px">
+    <input id="aguaInput" class="input" placeholder="ml" style="width:120px"/>
+    <button id="addAguaBtn" class="btn" style="flex:1;background:#2196F3;color:white">
+      Adicionar
+    </button>
+    <button id="removeAguaBtn" class="btn ghost" style="flex:1">Remover</button>
+  </div>
+  <div id="aguaStatus" class="small-muted" style="margin-top:8px">
+    0 ml de 0 ml
+  </div>
+</div>
+
+
             <div class="section-title">Resumo do dia</div>
             <div class="flex">
               <div class="badge" id="sumProt">Proteína<br><strong>0 g</strong></div>
@@ -365,6 +385,12 @@ scanBtn?.addEventListener('click', async () => {
             <label class="small-muted">Altura (cm)</label>
             <input id="metaAltura" class="input" placeholder="173"/>
             <label class="small-muted">Objetivo</label>
+<label class="small-muted">Meta de água (ml)</label>
+<input id="metaAgua" class="input" placeholder="2000"/>
+
+<label class="small-muted">Intervalo lembrete de água (min)</label>
+<input id="metaAguaIntervalo" class="input" placeholder="60"/>
+
             <select id="metaObjetivo" class="input">
               <option value="-800">Perder gordura (-800 kcal)</option>
               <option value="0">Manter peso (0 kcal)</option>
@@ -1076,7 +1102,54 @@ function generatePdfFromElement(element){
 }
 
 
+// ==========================
+// Controle de Água e Lembrete
+// ==========================
+let aguaConsumida = 0;
+
+function atualizarStatusAgua(){
+  const meta = window.userMeta?.metaAgua || 0;
+  document.getElementById('aguaStatus').textContent =
+    `${aguaConsumida} ml de ${meta} ml`;
+}
+
+// Adicionar ingestão de água
+document.getElementById('addAguaBtn')?.addEventListener('click', ()=>{
+  const q = parseInt(document.getElementById('aguaInput').value)||0;
+  if(q <= 0) return alert('Informe uma quantidade válida');
+  aguaConsumida += q;
+  atualizarStatusAgua();
+});
+
+// Remover ingestão de água
+document.getElementById('removeAguaBtn')?.addEventListener('click', ()=>{
+  const q = parseInt(document.getElementById('aguaInput').value)||0;
+  if(q <= 0) return alert('Informe uma quantidade válida');
+  aguaConsumida -= q;
+  if(aguaConsumida < 0) aguaConsumida = 0;
+  atualizarStatusAgua();
+});
+
+
+// Iniciar lembrete de água
+async function iniciarLembreteAgua(){
+  const intervalo = window.userMeta?.metaAguaIntervalo || 0;
+  if(intervalo <= 0) return;
+
+  const perm = await Notification.requestPermission();
+  if(perm !== "granted") return;
+
+  setInterval(()=>{
+    new Notification("Lembrete de Água 💧", {
+      body: "Hora de beber um copo de água!"
+    });
+    const audio = new Audio("beep.mp3");
+    audio.play().catch(()=>{});
+  }, intervalo * 60 * 1000);
+}
+
 window._ab = { loadBank, loadDay, calcKcalFromMacros };
+
 
 
 </script>
