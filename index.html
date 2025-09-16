@@ -76,7 +76,39 @@
     padding: 16px;
     border-radius: 12px;
     margin-bottom: 12px;
-  }
+
+/* === Gráficos lado a lado no mobile (vertical e horizontal) === */
+.chart-card > div {
+  display: flex;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Donut fixo à esquerda */
+.chart-card > div > div:first-child {
+  flex: 0 0 120px !important;
+  max-width: 120px !important;
+  min-width: 120px !important;
+  text-align: center;
+}
+
+/* Barras ocupam o resto sem expandir infinito */
+.chart-card > div > div:nth-child(2) {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;       /* evita "crescer sem parar" */
+  max-width: none !important;
+}
+
+/* Canvases menores no mobile */
+#kcalChart { max-width: 120px !important; height: 100px !important; }
+#macrosChart { height: 100px !important; }
+#kcalText { font-size: 12px !important; }
+
+}  
+
   /* Reorganizar header no mobile */
   .header {
     flex-direction: column;
@@ -367,8 +399,7 @@ scanBtn?.addEventListener('click', async () => {
             </div>
             <div style="margin-top:8px;display:flex;gap:8px">
               <button id="addToRegistroBtn" class="btn" style="flex:1">Adicionar ao registro</button>
-              <button id="exportDayBtn" class="btn ghost">Exportar Dia</button>
-              <button id="importDayBtn" class="btn ghost">Importar Dia</button>
+         
             </div>
           </div>
 
