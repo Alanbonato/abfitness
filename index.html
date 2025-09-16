@@ -1457,6 +1457,19 @@ async function iniciarLembreteAgua(){
 
 window._ab = { loadBank, loadDay, calcKcalFromMacros };
 
+// ---- Garantir que os charts reajustem no resize/orientationchange ----
+function refreshChartsCompact(){
+  try {
+    if(window.kcalChart && typeof window.kcalChart.resize === 'function') window.kcalChart.resize();
+    if(window.macrosChart && typeof window.macrosChart.resize === 'function') window.macrosChart.resize();
+  } catch(e){ /* fail silently */ }
+}
+
+// chama algumas vezes para garantir que, ao abrir no mobile, os charts fiquem no tamanho desejado
+window.addEventListener('DOMContentLoaded', () => setTimeout(refreshChartsCompact, 150));
+window.addEventListener('resize', () => setTimeout(refreshChartsCompact, 120));
+window.addEventListener('orientationchange', () => setTimeout(refreshChartsCompact, 250));
+
 
 
 </script>
