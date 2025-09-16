@@ -97,13 +97,14 @@
   .topnav {
     display: flex;
     flex-wrap: nowrap;                  /* não deixa quebrar linha */
-    overflow-x: auto;                   /* ativa rolagem lateral */
+    overflow-x: auto;                   /* ativa rolagem lateral só nas abas */
     -webkit-overflow-scrolling: touch;  /* rolagem suave no iOS */
     gap: 8px;
     padding: 8px 12px;
     margin-top: 8px;
     box-sizing: border-box;
     justify-content: flex-start;        /* começa do lado esquerdo */
+    max-width: 100%;                    /* impede tela inteira de rolar */
   }
 
   /* esconde a barra de rolagem visual em navegadores WebKit (iOS/Safari) */
@@ -114,6 +115,7 @@
     flex: 0 0 auto;
     white-space: nowrap;
   }
+
 
 
   /* Barras (Meta diária, Consumido, Restante) em coluna */
