@@ -76,6 +76,7 @@
     padding: 16px;
     border-radius: 12px;
     margin-bottom: 12px;
+}
 
 /* === Compactar gráficos para caber em 1 linha no mobile === */
 
@@ -85,6 +86,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
 /* Donut de kcal menor no celular */
 #kcalChart { 
   max-width: 120px !important;   /* largura máxima menor */
@@ -94,6 +97,34 @@
 #kcalText {
   font-size: 12px !important;    /* texto abaixo do donut menor */
  }
+
+/* === Forçar donut e barras lado a lado no mobile === */
+
+/* Container dos gráficos em linha */
+.chart-card > div {
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+}
+
+/* Donut pequeno à esquerda */
+.chart-card > div > div:first-child {
+  flex: 0 0 110px !important;
+  min-width: 0 !important;
+  max-width: 110px !important;
+  text-align: center;
+}
+
+/* Barras compactas à direita */
+.chart-card > div > div:nth-child(2) {
+  flex: 1 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+/* Canvas menores */
+#kcalChart { max-width: 110px !important; height: 90px !important; }
+#macrosChart { height: 90px !important; }
+#kcalText { font-size: 12px !important; }
 
 }
 
