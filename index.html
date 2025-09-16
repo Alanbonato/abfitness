@@ -156,6 +156,52 @@
     padding: 6px;
   }
 }
+
+/* === estilos para os charts (corrigido) === */
+.chart-card canvas { display:block; }
+#kcalChart { max-width:280px; height:220px !important; margin:0 auto; }
+#macrosChart { width:100%; height:220px !important; }
+
+/* === Estilos barra de água (gradiente) === */
+.water-progress-wrapper { padding:6px 0; }
+.water-progress-bar {
+  position: relative;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.03); /* fundo sutil do track */
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+}
+.water-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: linear-gradient(90deg, #2196F3 0%, #60a5fa 60%, #7dd3fc 100%);
+  transition: width 600ms cubic-bezier(.2,.9,.2,1);
+  border-radius: 999px;
+}
+.water-progress-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  z-index: 2;
+  font-weight: 800;
+  color: var(--text);
+  font-size: 13px;
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.4);
+}
+/* Responsividade */
+@media (max-width:480px){
+  .water-progress-bar { height: 24px; }
+  .water-progress-label { font-size:12px; }
+}
+
+
+
 </style>
 
 <script type="module">
@@ -213,7 +259,7 @@ scanBtn?.addEventListener('click', async () => {
 
 
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <header class="header">
@@ -261,6 +307,25 @@ scanBtn?.addEventListener('click', async () => {
           <div class="badge" id="restante">Restante: 0 kcal</div>
         </div></div>
 
+<!-- === INÍCIO: Resumo do dia com gráficos (inserir logo antes de <div style="margin-top:14px">) === -->
+<div class="card chart-card" style="margin-bottom:14px">
+  <div class="section-title">Resumo do dia</div>
+  <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between">
+    <!-- Gráfico circular de calorias -->
+    <div style="flex:1;min-width:260px;max-width:320px;text-align:center">
+      <canvas id="kcalChart"></canvas>
+      <div id="kcalText" style="margin-top:8px;font-weight:700;color:var(--text)"></div>
+    </div>
+
+    <!-- Gráfico barras horizontais (macros) -->
+    <div style="flex:2;min-width:300px;max-width:720px">
+      <canvas id="macrosChart"></canvas>
+    </div>
+  </div>
+</div>
+<!-- === FIM: Resumo do dia com gráficos === -->
+
+
         <div style="margin-top:14px">
           <div class="meal-buttons" id="mealBtns">
             <button class="chip meal" data-meal="cafedamanha">Café da manhã</button>
@@ -306,7 +371,19 @@ scanBtn?.addEventListener('click', async () => {
 </div>
 
 
+<!-- === INÍCIO: Card Água com barra de progresso === -->
 <div class="card" style="margin-bottom:12px">
+  <!-- Barra de progresso (gradiente azul) -->
+  <div style="margin-bottom:10px">
+    <div class="water-progress-wrapper" aria-hidden="true">
+      <div class="water-progress-bar" id="waterProgressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="water-progress-fill"></div>
+        <div class="water-progress-label" id="waterProgressLabel">0%</div>
+      </div>
+    </div>
+  </div>
+
+
   <div class="flex" style="gap:8px">
     <input id="aguaInput" class="input" placeholder="ml" style="width:120px"/>
     <button id="addAguaBtn" class="btn" style="flex:1;background:#2196F3;color:white">
@@ -314,10 +391,13 @@ scanBtn?.addEventListener('click', async () => {
     </button>
     <button id="removeAguaBtn" class="btn ghost" style="flex:1">Remover</button>
   </div>
+
   <div id="aguaStatus" class="small-muted" style="margin-top:8px">
     0 ml de 0 ml
   </div>
 </div>
+<!-- === FIM: Card Água com barra de progresso === -->
+
 
 
             <div class="section-title">Resumo do dia</div>
@@ -569,7 +649,10 @@ const metaPescoco = document.getElementById('metaPescoco');
 const metaQuadril = document.getElementById('metaQuadril');
 const bfBadge = document.getElementById('bfBadge');
 
+
 let currentUser = null;
+let kcalChart = null;
+let macrosChart = null;
 let selectedMeal = 'cafedamanha';
 let currentDayData = { meals: {} };
 let bankCache = []; // {id, name, prot, carb, fat, kcal}
@@ -893,19 +976,105 @@ document.getElementById('saveDayBtn').addEventListener('click', async ()=>{
 });
 
 function computeDaySummary(){
-  let p=0,c=0,f=0,k=0;
+  // soma macros/calorias a partir do registro
+  let p=0, c=0, f=0, k=0;
   for(const mealName in currentDayData.meals){
     for(const it of currentDayData.meals[mealName]){
-      p+=it.prot; c+=it.carb; f+=it.fat; k+=it.kcal;
+      p += Number(it.prot) || 0;
+      c += Number(it.carb) || 0;
+      f += Number(it.fat) || 0;
+      k += Number(it.kcal) || 0;
     }
   }
+
+  // Atualiza os badges/labels existentes
   sumProt.innerHTML = 'Proteína<br><strong>'+p.toFixed(1)+' g</strong>';
   sumCarb.innerHTML = 'Carboidrato<br><strong>'+c.toFixed(1)+' g</strong>';
   sumFat.innerHTML = 'Gordura<br><strong>'+f.toFixed(1)+' g</strong>';
   sumKcal.innerHTML = 'Calorias<br><strong>'+Math.round(k)+' kcal</strong>';
   consumido.textContent = 'Consumido: ' + Math.round(k) + ' kcal';
   const metaVal = window.userMeta?.meta || 0;
-  restante.textContent = 'Restante: ' + Math.round(metaVal - k) + ' kcal';
+  restante.textContent = 'Restante: ' + Math.max(Math.round(metaVal - k), 0) + ' kcal';
+
+  // Pega cores do CSS (mantém esquema de cores do app)
+  const css = getComputedStyle(document.documentElement);
+  const accent = (css.getPropertyValue('--accent')||'#f59e0b').trim();
+  const accent2 = (css.getPropertyValue('--accent2')||'#f8b844').trim();
+  const textColor = (css.getPropertyValue('--text')||'#e8ecf2').trim();
+  const cardBg = (css.getPropertyValue('--card')||'#14171a').trim();
+
+  // --- Gráfico de calorias (doughnut) ---
+  const kcalEl = document.getElementById('kcalChart');
+  if(kcalEl && typeof Chart !== 'undefined'){
+    const restanteKcal = Math.max(metaVal - k, 0);
+    const dataK = [ Math.round(k), Math.round(restanteKcal) ];
+
+    if(!kcalChart){
+      kcalChart = new Chart(kcalEl.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Consumido','Restante'],
+          datasets: [{
+            data: dataK,
+            backgroundColor: [accent, 'rgba(255,255,255,0.06)'],
+            borderWidth: 0
+          }]
+        },
+   options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  cutout: '68%',
+  plugins: {
+    legend: { display: false }
+  }
+}
+      });
+    } else {
+      kcalChart.data.datasets[0].data = dataK;
+      kcalChart.update();
+    }
+
+    // texto abaixo do donut
+    const t = document.getElementById('kcalText');
+    if(t) t.innerHTML = `<span style="color:${textColor};font-size:16px"><strong>${Math.round(k)}</strong> / ${metaVal} kcal</span>`;
+  }
+
+  // --- Gráfico de macros (barras horizontais) ---
+  const macrosEl = document.getElementById('macrosChart');
+  if(macrosEl && typeof Chart !== 'undefined'){
+    const dataM = [ +p.toFixed(1), +c.toFixed(1), +f.toFixed(1) ];
+    const macroColors = [ accent, '#16a34a', '#3b82f6' ]; // Proteína (accent), Carboidrato (verde), Gordura (azul)
+
+    if(!macrosChart){
+      macrosChart = new Chart(macrosEl.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['Proteína','Carboidrato','Gordura'],
+          datasets: [{ data: dataM, backgroundColor: macroColors, borderWidth: 0 }]
+        },
+        options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  indexAxis: 'y',
+  plugins: { legend: { display: false } },
+  scales: {
+    x: {
+      grid: { color: 'rgba(255,255,255,0.04)' },
+      ticks: { color: textColor }
+    },
+    y: {
+      grid: { display: false },
+      ticks: { color: textColor }
+    }
+  }
+}
+
+      });
+    } else {
+      macrosChart.data.datasets[0].data = dataM;
+      macrosChart.update();
+    }
+  }
 }
 
 /* Meta logic */
@@ -1119,11 +1288,44 @@ function generatePdfFromElement(element){
 // ==========================
 
 function atualizarStatusAgua(){
-  const meta = window.userMeta?.metaAgua || 0;
-  const qtd = (currentDayData && currentDayData.aguaConsumida) ? currentDayData.aguaConsumida : 0;
+  // lê meta de água (prefere o meta salvo em userMeta, senão pega o valor do input #metaAgua)
+  const metaInput = document.getElementById('metaAgua');
+  const metaFromInput = metaInput ? parseInt(metaInput.value) : 0;
+  const meta = Number(window.userMeta?.metaAgua) || (Number.isFinite(metaFromInput) ? metaFromInput : 0);
+
+  const qtd = (currentDayData && Number(currentDayData.aguaConsumida)) ? Number(currentDayData.aguaConsumida) : 0;
+
+  // Atualiza texto abaixo do card
   const el = document.getElementById('aguaStatus');
   if(el) el.textContent = `${qtd} ml de ${meta} ml`;
+
+  // Atualiza barra e label
+  const bar = document.getElementById('waterProgressBar');
+  const fill = bar ? bar.querySelector('.water-progress-fill') : null;
+  const label = document.getElementById('waterProgressLabel');
+
+  let pct = 0;
+  if(meta > 0){
+    pct = Math.round((qtd / meta) * 100);
+    if(pct < 0) pct = 0;
+    if(pct > 100) pct = 100;
+  } else {
+    pct = 0;
+  }
+
+  if(fill){
+    fill.style.width = pct + '%';
+  }
+  if(label){
+    // mostra apenas percentual no centro; se quiser também o ml, descomente a parte alternativa
+    label.textContent = pct + '%';
+    // alternativa com ml: label.textContent = pct + '% ('+qtd+' / '+meta+' ml)';
+  }
+
+  // update ARIA value
+  if(bar) bar.setAttribute('aria-valuenow', String(pct));
 }
+
 
 async function salvarDiaAtual() {
   if(!currentUser) return;
