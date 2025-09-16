@@ -76,6 +76,45 @@
     padding: 16px;
     border-radius: 12px;
     margin-bottom: 12px;
+/* === Compactar gráficos para caber em 1 linha no mobile === */
+
+/* Ajusta o wrapper dos charts para ficar mais compacto */
+.chart-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Donut de kcal: largura fixa pequena */
+.chart-card > div > div:first-child {
+  flex: 0 0 110px;     /* largura fixa do bloco do donut */
+  min-width: 110px;
+  max-width: 110px;
+  text-align: center;
+  padding: 2px 0;
+}
+
+/* Macros (barras): largura reduzida ao lado do donut */
+.chart-card > div > div:nth-child(2) {
+  flex: 0 0 170px;     /* largura fixa do bloco das barras */
+  min-width: 120px;
+  max-width: 170px;
+}
+
+/* força os canvases a ocupar a largura dos containers (Chart.js respeitará altura) */
+.chart-card canvas { display: block; width: 100% !important; }
+
+/* tamanhos dos canvases — reduza/ajuste se quiser ainda menor */
+#kcalChart { max-width: 110px !important; height: 90px !important; }
+#macrosChart { max-width: 170px !important; height: 90px !important; }
+
+/* texto do donut menor */
+#kcalText { font-size: 12px; line-height:1; }
+
+/* menor gap vertical caso quebre linha */
+.chart-card { padding: 6px; }
+
   }
   /* Reorganizar header no mobile */
   .header {
@@ -1138,6 +1177,11 @@ aplicarMeta.addEventListener('click', async ()=>{
     tdee: window.userMetaCalc.tdee,
     meta: window.userMetaCalc.meta,
     bf: window.userMetaCalc.bf,
+ metaAgua: parseInt(metaAgua.value) || 0,
+  metaAguaIntervalo: parseInt(metaAguaIntervalo.value) || 0,
+  cintura: parseFloat(metaCintura.value) || 0,
+  pescoco: parseFloat(metaPescoco.value) || 0,
+  quadril: parseFloat(metaQuadril.value) || 0,
     updatedAt: new Date().toISOString()
   };
   await setDoc(metaDoc(currentUser.uid), payload);
@@ -1159,6 +1203,11 @@ async function loadMeta(){
     metaEsteira.value = window.userMeta.esteira || 0;
     metaMusculacao.value = window.userMeta.musculacao || 0;
     metaObjetivo.value = window.userMeta.objetivo || '-800';
+metaAgua.value = window.userMeta.metaAgua || '';
+metaAguaIntervalo.value = window.userMeta.metaAguaIntervalo || '';
+metaCintura.value = window.userMeta.cintura || '';
+metaPescoco.value = window.userMeta.pescoco || '';
+metaQuadril.value = window.userMeta.quadril || '';
     tmbBadge.innerHTML = 'TMB<br><strong>'+(window.userMeta.tmb||0)+' kcal</strong>';
     tdeeBadge.innerHTML = 'TDEE<br><strong>'+(window.userMeta.tdee||0)+' kcal</strong>';
     metaBadge.innerHTML = 'Meta<br><strong>'+(window.userMeta.meta||0)+' kcal</strong>';
