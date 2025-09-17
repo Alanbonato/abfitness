@@ -1461,5 +1461,87 @@ window._ab = { loadBank, loadDay, calcKcalFromMacros };
 
 
 </script>
+
+<style>
+.bf-verde { background-color:#2e7d32; color:#fff; }
+.bf-amarelo { background-color:#fbc02d; color:#000; }
+.bf-laranja { background-color:#fb8c00; color:#fff; }
+.bf-vermelho { background-color:#d32f2f; color:#fff; }
+</style>
+
+<script>
+(function(){
+  // Tabelas de classificação por sexo e faixa etária
+  const tabelas = {
+    M: [
+      { faixa: [18,25], limites: [6,10,13,16,20,24,36] },
+      { faixa: [26,35], limites: [11,15,18,20,24,29,36] },
+      { faixa: [36,45], limites: [14,18.9,21,23,25,29,36] },
+      { faixa: [46,55], limites: [16,20,23,25,27,30,38] },
+      { faixa: [56,65], limites: [18,21,23,25,27,30,38] }
+    ],
+    F: [
+      { faixa: [18,25], limites: [16,19,22,25,28,31,43] },
+      { faixa: [26,35], limites: [19,20,23,25,29,33,49] },
+      { faixa: [36,45], limites: [23,23,26,29,32,36,48] },
+      { faixa: [46,55], limites: [21,25,28,31,34,38,50] },
+      { faixa: [56,65], limites: [22,26,29,32,35,38,49] }
+    ]
+  };
+
+  // 0=Excelente,1=Bom,2=Acima da Média,3=Média,4=Abaixo da Média,5=Ruim,6=Muito Ruim
+  function classifyBF(sex, age, bf){
+    if(isNaN(bf)) return null;
+    sex = (sex||'M').toString().toUpperCase()[0]; // pega inicial M ou F
+    age = Number(age)||0;
+    const tabela = tabelas[sex] || tabelas['M'];
+    let linha = tabela.find(l => age >= l.faixa[0] && age <= l.faixa[1]);
+    if(!linha) linha = tabela[tabela.length-1];
+    const limites = linha.limites;
+    for(let i=0;i<limites.length;i++){
+      if(bf <= limites[i]) return i;
+    }
+    return 6;
+  }
+
+  function updateBFColor(){
+    var bfBadge = document.getElementById('bfBadge');
+    if(!bfBadge) return;
+    var txt = (bfBadge.textContent || bfBadge.innerText || "").trim();
+    var m = txt.match(/([0-9]{1,2}(?:[.,][0-9])?)/);
+    var bf = m ? parseFloat(m[0].replace(',','.')) : NaN;
+    var sexEl = document.getElementById('metaSexo');
+    var ageEl = document.getElementById('metaIdade');
+    var sex = (sexEl && sexEl.value) || (window.userMeta && window.userMeta.sexo) || 'M';
+    var age = (ageEl && ageEl.value) || (window.userMeta && window.userMeta.idade) || 0;
+    var idx = classifyBF(sex, age, bf);
+    bfBadge.classList.remove('bf-verde','bf-amarelo','bf-laranja','bf-vermelho');
+    if(idx === null) return;
+    if(idx === 0 || idx === 1) bfBadge.classList.add('bf-verde');
+    else if(idx === 2 || idx === 3) bfBadge.classList.add('bf-amarelo');
+    else if(idx === 4 || idx === 5) bfBadge.classList.add('bf-laranja');
+    else if(idx === 6) bfBadge.classList.add('bf-vermelho');
+  }
+
+  function attachObserver(){
+    var target = document.getElementById('bfBadge');
+    if(!target) return;
+    updateBFColor();
+    var obs = new MutationObserver(updateBFColor);
+    obs.observe(target, { childList:true, characterData:true, subtree:true });
+  }
+
+  var btn = document.getElementById('calcMeta');
+  if(btn){
+    btn.addEventListener('click', function(){ setTimeout(updateBFColor, 300); });
+  }
+
+  document.addEventListener('DOMContentLoaded', attachObserver);
+  window.addEventListener('load', attachObserver);
+  window._updateBFColor = updateBFColor;
+  window._classifyBF = classifyBF;
+})();
+</script>
+
 </body>
 </html>
