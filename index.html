@@ -255,6 +255,31 @@
   display: none;
 }
 
+#sumProt {
+  background: #F4C2C2; /* rosa */
+  color: #fff;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+#sumCarb {
+  background: #16a34a; /* verde */
+  color: #fff;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+#sumFat {
+  background: #facc15; /* amarelo */
+  color: #111; /* texto escuro p/ contraste */
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+#sumKcal {
+  background: #fff; /* fundo branco */
+  color: #111;      /* texto escuro */
+  border: 1px solid #ddd;
+}
+
+
 
 </style>
 
@@ -1060,7 +1085,7 @@ function computeDaySummary(){
   const textColor = (css.getPropertyValue('--text')||'#e8ecf2').trim();
   const cardBg = (css.getPropertyValue('--card')||'#14171a').trim();
 
-  // --- Gráfico de calorias (doughnut) ---
+  // --- Gráfico de calorias (DONUT) ---
   const kcalEl = document.getElementById('kcalChart');
   if(kcalEl && typeof Chart !== 'undefined'){
     const restanteKcal = Math.max(metaVal - k, 0);
@@ -1073,14 +1098,14 @@ function computeDaySummary(){
           labels: ['Consumido','Restante'],
           datasets: [{
             data: dataK,
-            backgroundColor: [accent, 'rgba(255,255,255,0.06)'],
+            backgroundColor: ['#3b82f6', 'rgba(255,255,255,0.06)'],
             borderWidth: 0
           }]
         },
    options: {
   responsive: true,
   maintainAspectRatio: false,
-  cutout: '68%',
+  cutout: '80%',
   plugins: {
     legend: { display: false }
   }
@@ -1100,37 +1125,43 @@ function computeDaySummary(){
   const macrosEl = document.getElementById('macrosChart');
   if(macrosEl && typeof Chart !== 'undefined'){
     const dataM = [ +p.toFixed(1), +c.toFixed(1), +f.toFixed(1) ];
-    const macroColors = [ accent, '#16a34a', '#3b82f6' ]; // Proteína (accent), Carboidrato (verde), Gordura (azul)
+    const macroColors = [ '#F4C2C2', '#16a34a', '#facc15' ]; // Proteína (rosa), Carboidrato (verde), Gordura (amarelo)
 
-    if(!macrosChart){
-      macrosChart = new Chart(macrosEl.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: ['Proteína','Carboidrato','Gordura'],
-          datasets: [{ data: dataM, backgroundColor: macroColors, borderWidth: 0 }]
-        },
-        options: {
-  responsive: true,
-  maintainAspectRatio: false,
-  indexAxis: 'y',
-  plugins: { legend: { display: false } },
-  scales: {
-    x: {
-      grid: { color: 'rgba(255,255,255,0.04)' },
-      ticks: { color: textColor }
+   if(!macrosChart){
+  macrosChart = new Chart(macrosEl.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Proteína','Carboidrato','Gordura'],
+      datasets: [{
+        data: dataM,
+        backgroundColor: macroColors,
+        borderWidth: 0,
+        barThickness: 20,     // 👈 define espessura fixa
+        maxBarThickness: 30   // 👈 limite máximo
+      }]
     },
-    y: {
-      grid: { display: false },
-      ticks: { color: textColor }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: textColor }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: textColor }
+        }
+      }
     }
-  }
+  });
+} else {
+  macrosChart.data.datasets[0].data = dataM;
+  macrosChart.update();
 }
 
-      });
-    } else {
-      macrosChart.data.datasets[0].data = dataM;
-      macrosChart.update();
-    }
   }
 }
 
