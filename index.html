@@ -251,6 +251,9 @@
   .water-progress-label { font-size:12px; }
 }
 
+.brand {
+  display: none;
+}
 
 
 </style>
@@ -752,6 +755,7 @@ logoutBtn.addEventListener('click', async ()=>{ await signOut(auth); });
 onAuthStateChanged(auth, async (u)=>{
   currentUser = u;
   if(u){
+    document.querySelector('.brand').style.display = 'flex';
     userEmail.textContent = u.email || u.uid;
     loginScreen.style.display='none';
     mainScreen.style.display='';
@@ -767,6 +771,9 @@ onAuthStateChanged(auth, async (u)=>{
     mainScreen.style.display='none';
     topnav.style.display='none';
     userEmail.textContent = '';
+ // 🔑 Garante que a logo desaparece no logout
+    document.querySelector('.brand').style.display = 'none';
+  
   }
 });
 
