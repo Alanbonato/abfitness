@@ -1174,46 +1174,82 @@ calcMetaBtn.addEventListener('click', ()=>{
 aplicarMeta.addEventListener('click', async ()=>{
   if(!currentUser) return alert('Logue-se');
   if(!window.userMetaCalc) return alert('Calcule antes de aplicar');
+
+  // elementos que podem não ter sido declarados como constantes no arquivo:
+  const metaAguaEl = document.getElementById('metaAgua');
+  const metaAguaIntervaloEl = document.getElementById('metaAguaIntervalo');
+
+  // Monta payload — usa o valor do input se existir; senão mantém o já salvo em window.userMeta
   const payload = {
-    nome: metaNome.value||'',
+    nome: metaNome.value || '',
     sexo: metaSexo.value,
-    idade: parseInt(metaIdade.value)||0,
-    peso: parseFloat(metaPeso.value)||0,
-    altura: parseFloat(metaAltura.value)||0,
-    nivel: parseFloat(metaAtividade.value)||1.2,
-    esteira: parseFloat(metaEsteira.value)||0,
-    musculacao: parseFloat(metaMusculacao.value)||0,
-    objetivo: parseInt(metaObjetivo.value)||0,
+    idade: metaIdade.value ? parseInt(metaIdade.value) : (window.userMeta?.idade ?? 0),
+    peso: metaPeso.value ? parseFloat(metaPeso.value) : (window.userMeta?.peso ?? 0),
+    altura: metaAltura.value ? parseFloat(metaAltura.value) : (window.userMeta?.altura ?? 0),
+    nivel: metaAtividade.value ? parseFloat(metaAtividade.value) : (window.userMeta?.nivel ?? 1.2),
+    esteira: metaEsteira.value ? parseFloat(metaEsteira.value) : (window.userMeta?.esteira ?? 0),
+    musculacao: metaMusculacao.value ? parseFloat(metaMusculacao.value) : (window.userMeta?.musculacao ?? 0),
+    objetivo: metaObjetivo.value ? parseInt(metaObjetivo.value) : (window.userMeta?.objetivo ?? 0),
+
+    // ===== campos que antes eram apagados/zerados =====
+    metaAgua: (metaAguaEl && metaAguaEl.value) ? parseInt(metaAguaEl.value) : (window.userMeta?.metaAgua ?? 0),
+    metaAguaIntervalo: (metaAguaIntervaloEl && metaAguaIntervaloEl.value) ? parseInt(metaAguaIntervaloEl.value) : (window.userMeta?.metaAguaIntervalo ?? 0),
+    cintura: metaCintura.value ? parseFloat(metaCintura.value) : (window.userMeta?.cintura ?? 0),
+    pescoco: metaPescoco.value ? parseFloat(metaPescoco.value) : (window.userMeta?.pescoco ?? 0),
+    quadril: metaQuadril.value ? parseFloat(metaQuadril.value) : (window.userMeta?.quadril ?? 0),
+
+    // cálculos e badges (mantém os valores calculados)
     tmb: window.userMetaCalc.tmb,
     tdee: window.userMetaCalc.tdee,
     meta: window.userMetaCalc.meta,
     bf: window.userMetaCalc.bf,
     updatedAt: new Date().toISOString()
   };
-  await setDoc(metaDoc(currentUser.uid), payload);
+
+  // Usa merge:true para não apagar campos que você não incluiu (extra segurança)
+  await setDoc(metaDoc(currentUser.uid), payload, { merge: true });
   await loadMeta();
   alert('Meta aplicada e salva');
 });
+
 
 async function loadMeta(){
   if(!currentUser) return;
   const ms = await getDoc(metaDoc(currentUser.uid));
   if(ms.exists()){
     window.userMeta = ms.data();
-    metaNome.value = window.userMeta.nome || '';
-    metaSexo.value = window.userMeta.sexo || 'M';
-    metaAltura.value = window.userMeta.altura || '';
-    metaIdade.value = window.userMeta.idade || '';
-    metaPeso.value = window.userMeta.peso || '';
-    metaAtividade.value = window.userMeta.nivel || '1.2';
-    metaEsteira.value = window.userMeta.esteira || 0;
-    metaMusculacao.value = window.userMeta.musculacao || 0;
-    metaObjetivo.value = window.userMeta.objetivo || '-800';
-    tmbBadge.innerHTML = 'TMB<br><strong>'+(window.userMeta.tmb||0)+' kcal</strong>';
-    tdeeBadge.innerHTML = 'TDEE<br><strong>'+(window.userMeta.tdee||0)+' kcal</strong>';
-    metaBadge.innerHTML = 'Meta<br><strong>'+(window.userMeta.meta||0)+' kcal</strong>';
-    window.userMeta = window.userMeta;
-    if(window.userMeta.bf){ bfBadge.innerHTML = 'BF<br><strong>'+window.userMeta.bf+' %</strong>'; }
+
+    // campos existentes
+    metaNome.value       = window.userMeta.nome ?? '';
+    metaSexo.value       = window.userMeta.sexo ?? 'M';
+    metaAltura.value     = window.userMeta.altura ?? '';
+    metaIdade.value      = window.userMeta.idade ?? '';
+    metaPeso.value       = window.userMeta.peso ?? '';
+    metaAtividade.value  = window.userMeta.nivel ?? '1.2';
+    metaEsteira.value    = window.userMeta.esteira ?? 0;
+    metaMusculacao.value = window.userMeta.musculacao ?? 0;
+    metaObjetivo.value   = window.userMeta.objetivo ?? '-800';
+
+    // campos de água (pega elemento direto caso não exista variável global)
+    const metaAguaEl = document.getElementById('metaAgua');
+    if(metaAguaEl) metaAguaEl.value = window.userMeta.metaAgua ?? '';
+
+    const metaAguaIntervaloEl = document.getElementById('metaAguaIntervalo');
+    if(metaAguaIntervaloEl) metaAguaIntervaloEl.value = window.userMeta.metaAguaIntervalo ?? '';
+
+    // cintura/pescoco/quadril (essas variáveis já existem no topo do seu arquivo)
+    metaCintura.value = window.userMeta.cintura ?? '';
+    metaPescoco.value = window.userMeta.pescoco ?? '';
+    metaQuadril.value = window.userMeta.quadril ?? '';
+
+    // badges
+    tmbBadge.innerHTML  = 'TMB<br><strong>' + (window.userMeta.tmb ?? 0) + ' kcal</strong>';
+    tdeeBadge.innerHTML = 'TDEE<br><strong>' + (window.userMeta.tdee ?? 0) + ' kcal</strong>';
+    metaBadge.innerHTML = 'Meta<br><strong>' + (window.userMeta.meta ?? 0) + ' kcal</strong>';
+
+    if(window.userMeta.bf){
+      bfBadge.innerHTML = 'BF<br><strong>' + window.userMeta.bf + ' %</strong>';
+    }
   } else {
     window.userMeta = null;
   }
@@ -1251,55 +1287,137 @@ const mealNames = {
   jantar: 'Jantar'
 };
 
-if(btnPreview){
-  btnPreview.addEventListener('click', ()=>{
-    if(!currentUser) return alert('Faça login para gerar o preview.');
+if (btnPreview) {
+  btnPreview.addEventListener('click', () => {
+    if (!currentUser) return alert('Faça login para gerar o preview.');
     const meta = window.userMeta || {};
     const day = currentDayData.meals || {};
-    // build HTML preview (A4-like)
-    let html = `<div style="font-family:Arial,Helvetica,sans-serif">`;
-    html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><h2 style="margin:0">Relatório Diário</h2><div style="color:#444">Gerado por AB Nutri</div></div><div style="text-align:right"><strong>${meta.nome||''}</strong><div style="font-size:12px;color:#333">${meta.sexo||''} • ${meta.idade||''} anos</div></div></div>`;
 
-    // Header metab
-    html += `<div style="border:1px solid #222;padding:10px;margin-bottom:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-  <div>
-    <strong>Dados do Aluno</strong><br/>
-    Nome: ${meta.nome||'-'}<br/>
-    Idade: ${meta.idade||'-'} anos • Sexo: ${meta.sexo||'-'}<br/>
-    Altura: ${meta.altura||'-'} cm • Peso: ${meta.peso||'-'} kg<br/>
-    TMB: ${meta.tmb||0} kcal • TDEE: ${meta.tdee||0} kcal • BF: ${meta.bf||0}%<br/>
-    Objetivo: ${meta.objetivo||'-'}
-  </div>
-  <img src="abnutri_logo.png" alt="Logo" style="width:80px;height:80px;object-fit:contain;border-radius:8px"/>
-</div>`;
+    // Começamos com um estilo interno específico para o preview:
+    let html = `
+      <div style="font-family:Arial,Helvetica,sans-serif;color:#000">
+        <style>
+          /* Container do preview (opcional: ajusta a largura final) */
+          .ab-preview { max-width: 800px; }
 
-    html += `<div><strong>Registro de Refeições (${registroDate.value || ''})</strong></div>`;
+          /* Table layout fixo: garante que todas as tabelas tenham as mesmas larguras de coluna */
+          .ab-preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed; /* <--- importante */
+            font-size: 12px;
+          }
 
-    let totalP=0, totalC=0, totalF=0, totalK=0;
-    for(const mealKey of Object.keys(mealNames)){
+          /* Cabeçalho e células */
+          .ab-preview-table th,
+          .ab-preview-table td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            overflow: hidden;         /* evita que células cresçam por conteúdo longo */
+            text-overflow: ellipsis;  /* mostra "..." se o texto for maior que a largura */
+            white-space: nowrap;      /* evita quebra de linha dentro da célula */
+          }
+
+          /* Cabeçalho com fundo sutil */
+          .ab-preview-table th { background: #f6f6f6; text-align: left; }
+
+          /* Alinhar colunas numéricas ao centro */
+          .ab-preview-table td.numeric,
+          .ab-preview-table th.numeric { text-align: center; white-space: nowrap; }
+
+          /* Se quiser que o nome do alimento tenha quebra de linha em vez de cortar, remova white-space:nowrap acima e use: */
+          /* .ab-preview-table td:first-child { white-space: normal; } */
+        </style>
+
+        <div class="ab-preview">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div>
+              <h2 style="margin:0">Relatório Diário</h2>
+              <div style="color:#444">Gerado por AB Nutri</div>
+            </div>
+            <div style="text-align:right">
+              <strong>${meta.nome || ''}</strong>
+              <div style="font-size:12px;color:#333">${meta.sexo || ''} • ${meta.idade || ''} anos</div>
+            </div>
+          </div>
+
+          <div style="border:1px solid #222;padding:10px;margin-bottom:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div>
+              <strong>Dados do Aluno</strong><br/>
+              Nome: ${meta.nome || '-'}<br/>
+              Idade: ${meta.idade || '-'} anos • Sexo: ${meta.sexo || '-'}<br/>
+              Altura: ${meta.altura || '-'} cm • Peso: ${meta.peso || '-'} kg<br/>
+              TMB: ${meta.tmb || 0} kcal • TDEE: ${meta.tdee || 0} kcal • BF: ${meta.bf || 0}%<br/>
+              Objetivo: ${meta.objetivo || '-'}
+            </div>
+            <img src="abnutri_logo.png" alt="Logo" style="width:80px;height:80px;object-fit:contain;border-radius:8px"/>
+          </div>
+
+          <div><strong>Registro de Refeições (${registroDate.value || ''})</strong></div>
+    `;
+
+    let totalP = 0, totalC = 0, totalF = 0, totalK = 0;
+
+    // Percorre as refeições e gera as tabelas
+    for (const mealKey of Object.keys(mealNames)) {
       const items = day[mealKey] || [];
-      if(items.length===0) continue;
+      if (items.length === 0) continue;
+
       html += `<div style="margin-top:10px"><div style="font-weight:800;margin-bottom:6px">${mealNames[mealKey]}</div>`;
-      html += `<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="border:1px solid #ddd;padding:6px;text-align:left">Alimento</th><th style="border:1px solid #ddd;padding:6px">Qtd</th><th style="border:1px solid #ddd;padding:6px">Prot (g)</th><th style="border:1px solid #ddd;padding:6px">Carb (g)</th><th style="border:1px solid #ddd;padding:6px">Gord (g)</th><th style="border:1px solid #ddd;padding:6px">Kcal</th></tr></thead><tbody>`;
-      let mealP=0, mealC=0, mealF=0, mealK=0;
-      items.forEach(it=>{
-        html += `<tr><td style="border:1px solid #eee;padding:6px">${it.name}</td><td style="border:1px solid #eee;padding:6px">${it.qty}</td><td style="border:1px solid #eee;padding:6px">${it.prot.toFixed(1)}</td><td style="border:1px solid #eee;padding:6px">${it.carb.toFixed(1)}</td><td style="border:1px solid #eee;padding:6px">${it.fat.toFixed(1)}</td><td style="border:1px solid #eee;padding:6px">${it.kcal}</td></tr>`;
+
+      // Aqui usamos colgroup para garantir colunas com largura fixa e iguais entre todas as tabelas
+      html += `
+        <table class="ab-preview-table">
+          <colgroup>
+            <col style="width:48%"/>
+            <col style="width:10%"/>
+            <col style="width:12%"/>
+            <col style="width:12%"/>
+            <col style="width:8%"/>
+            <col style="width:10%"/>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Alimento</th>
+              <th class="numeric">Qtd</th>
+              <th class="numeric">Prot (g)</th>
+              <th class="numeric">Carb (g)</th>
+              <th class="numeric">Gord (g)</th>
+              <th class="numeric">Kcal</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      let mealP = 0, mealC = 0, mealF = 0, mealK = 0;
+      items.forEach(it => {
+        html += `<tr>
+                  <td>${it.name}</td>
+                  <td class="numeric">${it.qty}</td>
+                  <td class="numeric">${it.prot.toFixed(1)}</td>
+                  <td class="numeric">${it.carb.toFixed(1)}</td>
+                  <td class="numeric">${it.fat.toFixed(1)}</td>
+                  <td class="numeric">${it.kcal}</td>
+                </tr>`;
         mealP += it.prot; mealC += it.carb; mealF += it.fat; mealK += it.kcal;
       });
+
       html += `</tbody></table>`;
       html += `<div style="margin-top:6px;font-weight:700">Subtotal: Prot ${mealP.toFixed(1)} g • Carb ${mealC.toFixed(1)} g • Gord ${mealF.toFixed(1)} g • ${mealK} kcal</div>`;
       html += `</div>`;
+
       totalP += mealP; totalC += mealC; totalF += mealF; totalK += mealK;
     }
 
     html += `<div style="margin-top:14px;padding:10px;border-top:2px solid #222;font-weight:800">Total do dia: Prot ${totalP.toFixed(1)} g • Carb ${totalC.toFixed(1)} g • Gord ${totalF.toFixed(1)} g • ${totalK} kcal</div>`;
+    html += `</div>`; // fecha ab-preview e wrapper
 
-    html += `</div>`;
     previewContainer.innerHTML = html;
     previewContainer.style.display = 'block';
-    // scroll to preview
-    previewContainer.scrollIntoView({behavior:'smooth'});
+    previewContainer.scrollIntoView({ behavior: 'smooth' });
   });
+
+
 }
 
 if(btnPDF){
