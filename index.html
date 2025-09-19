@@ -293,6 +293,31 @@
   }
 }
 
+/* ===== Ajustes para iframe Musculação ===== */
+html, body {
+  overflow-x: hidden; /* evita scroll lateral da página inteira */
+}
+
+/* Estilo do iframe usado pela aba Musculação */
+.iframe-musculacao {
+  width: 100%;
+  border: 0;
+  display: block;
+  height: 80vh; /* fallback para desktop */
+  background: transparent;
+}
+
+/* No mobile, ajustaremos dinamicamente com JS — mas garante um fallback */
+@media (max-width: 768px) {
+  .iframe-musculacao {
+    height: calc(100vh - 120px); /* fallback: ocupa tela excluindo header estimado */
+  }
+}
+
+/* opcional: esconde barra de rolagem do iframe no host (visual) */
+.iframe-musculacao::-webkit-scrollbar { display: none; }
+
+
 
 </style>
 
@@ -549,12 +574,13 @@ scanBtn?.addEventListener('click', async () => {
 
 <!-- Musculação page -->
 <div id="page-Musculação" class="card" style="display:none">
-  <div class="section-title">Guia de Exercícios de Musculação</div>
- <iframe class="iframe-musculacao" 
-        src="https://alanbonato.github.io/exerciciosuscula-o/" 
-        frameborder="0"></iframe>
-</div>
+  <div class="section-title">Guia de Musculação</div>
 
+  <!-- iframe controlável -->
+  <iframe id="musculacaoIframe" class="iframe-musculacao"
+          src="https://alanbonato.github.io/exerciciosuscula-o/"
+          frameborder="0" tabindex="0" aria-label="Guia de Musculação"></iframe>
+</div>
 
     <!-- Metabolismo page -->
       <div id="page-metabolismo" class="card" style="display:none">
@@ -1727,6 +1753,34 @@ window._ab = { loadBank, loadDay, calcKcalFromMacros };
   window._classifyBF = classifyBF;
 })();
 </script>
+
+<script>
+/* Ajusta a altura do iframe para ocupar o espaço disponível abaixo do header */
+function adjustMusculacaoIframe(){
+  const iframe = document.getElementById('musculacaoIframe');
+  if(!iframe) return;
+  // calcula altura do header (podendo incluir topnav)
+  const header = document.querySelector('.header');
+  const headerHeight = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+  // desconta também 12px de margem inferior do container
+  const available = Math.max(window.innerHeight - headerHeight - 12, 320);
+  iframe.style.height = available + 'px';
+}
+
+/* Ajusta ao carregar e redimensionar */
+window.addEventListener('load', () => setTimeout(adjustMusculacaoIframe, 50));
+window.addEventListener('resize', adjustMusculacaoIframe);
+
+/* Se sua função showPage controla quais páginas aparecem,
+   chame adjustMusculacaoIframe logo após exibir a aba Musculação.
+   Exemplo: dentro da função showPage, onde você mostra pageMusculacao:
+     if (page === 'Musculação') {
+       pageMusculacao.style.display = 'block';
+       setTimeout(adjustMusculacaoIframe, 50);
+     }
+*/
+</script>
+
 
 </body>
 </html>
