@@ -377,7 +377,39 @@ scanBtn?.addEventListener('click', async () => {
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Estilo do popup de correção */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 3000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal.open { display: flex; }
+    .modal-content {
+      background: #0b0d0f;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+    .modal-content h3 { margin-top: 0; font-size: 18px; color: var(--accent); } 
+    .modal-content label { display: block; margin: 10px 0 5px; }
+    .modal-content input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .modal-actions { margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px; }
+  </style>
 </head>
+
 <body>
 
 <header class="header">
@@ -1045,27 +1077,78 @@ populateFoodSelect(searchFood.value);
 function getMealList(meal){ return currentDayData.meals?.[meal] || []; }
 
 function renderMealItems(){
-  mealItemsTable.innerHTML = '';
-  const items = getMealList(selectedMeal);
-  items.forEach((it, idx)=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${it.name}</td><td>${it.qty}</td><td>${it.prot.toFixed(2)}</td><td>${it.carb.toFixed(2)}</td><td>${it.fat.toFixed(2)}</td><td>${it.kcal}</td><td><button class="chip" data-idx="${idx}" data-act="rem">Remover</button></td>`;
-    mealItemsTable.appendChild(tr);
-  });
-}
+    mealItemsTable.innerHTML = '';
+    const items = getMealList(selectedMeal);
+    items.forEach((it, idx)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${it.name}</td>
+        <td>${Number(it.qty) || 0}</td>
+        <td>${(Number(it.prot)||0).toFixed(2)}</td>
+        <td>${(Number(it.carb)||0).toFixed(2)}</td>
+        <td>${(Number(it.fat)||0).toFixed(2)}</td>
+        <td>${Number(it.kcal)||0}</td>
+        <td>
+          <button class="chip" data-idx="${idx}" data-act="edit">Corrigir</button>
+          <button class="chip" data-idx="${idx}" data-act="rem">Remover</button>
+        </td>`;
+      mealItemsTable.appendChild(tr);
+    });
+  }
 
 mealItemsTable.addEventListener('click', async (e)=>{
-  const btn = e.target.closest('button');
-  if(!btn) return;
-  const idx = parseInt(btn.dataset.idx);
-  const act = btn.dataset.act;
-  if(act==='rem'){
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const idx = parseInt(btn.dataset.idx);
+    const act = btn.dataset.act;
     const arr = getMealList(selectedMeal);
-    arr.splice(idx,1);
-    currentDayData.meals[selectedMeal]=arr;
-    renderMealItems(); computeDaySummary();
-  }
-});
+
+    if(act==='rem'){
+      arr.splice(idx,1);
+      currentDayData.meals[selectedMeal]=arr;
+      renderMealItems(); computeDaySummary();
+    }
+
+    if(act==='edit'){
+      const item = arr[idx];
+      window.editIndex = idx;
+      document.getElementById('editQty').value = item.qty;
+      document.getElementById('editModal').classList.add('open');
+    }
+  });
+
+  // Cancelar edição
+  document.getElementById('cancelEdit').addEventListener('click', ()=>{
+    document.getElementById('editModal').classList.remove('open');
+    window.editIndex = null;
+  });
+
+  // Salvar edição
+  document.getElementById('saveEdit').addEventListener('click', ()=>{
+    if(window.editIndex===null) return;
+    const arr = getMealList(selectedMeal);
+    const item = arr[window.editIndex];
+    const newQty = parseFloat(document.getElementById('editQty').value);
+    if(newQty && !isNaN(newQty)){
+      const baseProt = item.prot/(item.qty/100);
+      const baseCarb = item.carb/(item.qty/100);
+      const baseFat  = item.fat/(item.qty/100);
+      const baseKcal = item.kcal/(item.qty/100);
+
+      item.qty = newQty;
+      const factor = newQty/100;
+      item.prot = baseProt*factor;
+      item.carb = baseCarb*factor;
+      item.fat  = baseFat*factor;
+      item.kcal = Math.round(baseKcal*factor);
+
+      arr[window.editIndex] = item;
+      currentDayData.meals[selectedMeal]=arr;
+      renderMealItems(); computeDaySummary();
+    }
+    document.getElementById('editModal').classList.remove('open');
+    window.editIndex = null;
+  });
 
 document.querySelectorAll('.meal').forEach(b=>{
   b.addEventListener('click', (ev)=>{
@@ -1782,5 +1865,21 @@ window.addEventListener('resize', adjustMusculacaoIframe);
 </script>
 
 
+
+  <!-- Modal de correção -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h3>Corrigir Alimento</h3>
+      <div>
+        <label for="editQty">Quantidade (g/ml):</label>
+        <input type="number" id="editQty" min="1" />
+      </div>
+      <div class="modal-actions">
+        <button id="cancelEdit" class="btn-small">Cancelar</button>
+        <button id="saveEdit" class="btn">Salvar</button>
+      </div>
+    </div>
+  </div>
 </body>
+
 </html>
