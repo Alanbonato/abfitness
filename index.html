@@ -49,7 +49,9 @@
 .btn.ghost{background:transparent;border:1px solid #2a2f35;color:var(--text)}
 .grid{display:grid;gap:12px}
 .grid-3{grid-template-columns:1fr 1fr 1fr}
-
+.grid-4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr
+  align-items: start;
 }
 .section-title{color:#ffd089;font-weight:800;margin-bottom:8px}
 .small{font-size:13px;color:var(--muted)}
@@ -318,6 +320,12 @@ html, body {
 
 
 
+
+#page-metabolismo .grid-4 .section-title {
+  margin-top: 0;
+  margin-bottom: 6px; /* pequeno espaço */
+}
+
 </style>
 
 <script type="module">
@@ -388,9 +396,9 @@ scanBtn?.addEventListener('click', async () => {
     <div class="chip" data-page="registro">Registro</div>
     <div class="chip" data-page="banco">Banco</div>
     <div class="chip" data-page="auditoria">Auditoria</div>
-    <div class="chip" data-page="metabolismo">Metabolismo</div>
+    <div class="chip" data-page="metabolismo">Check-up Pessoal</div>
+    <div class="chip" data-page="Musculação">Saúde Ativa</div>
     <div class="chip" data-page="exportar">Exportar</div>
-    <div class="chip" data-page="Musculação">Musculação</div>
     <div class="chip" id="logoutBtn" style="margin-left:18px;background:#0b0d0f;border:1px solid #222">Sair</div>
   </nav>
 </header>
@@ -596,29 +604,40 @@ scanBtn?.addEventListener('click', async () => {
 
     <!-- Metabolismo page -->
       <div id="page-metabolismo" class="card" style="display:none">
-        <div class="section-title">Metabolismo e Meta</div>
+        <div class="section-title">Dados Pessoais</div>
         <div class="grid grid-4" style="margin-bottom:10px">
           <div>
             <label class="small-muted">Nome (opcional)</label>
             <input id="metaNome" class="input"/>
+            <label class="small-muted">Idade (anos)</label>
+            <input id="metaIdade" class="input" placeholder="30"/>
+            <label class="small-muted">Sexo</label>
+            <select id="metaSexo" class="input"><option value="M">Masculino</option><option value="F">Feminino</option></select>
+            <label class="small-muted">Peso (kg)</label>
+            <input id="metaPeso" class="input" placeholder="70"/>
             <label class="small-muted">Altura (cm)</label>
             <input id="metaAltura" class="input" placeholder="173"/>
-            <label class="small-muted">Objetivo</label>
+
+<div class="section-title">Objetivos</div>
+        
+            <select id="metaObjetivo" class="input">
+              <option value="-800">Perder gordura </option> //-800kcal//
+              <option value="0">Manter peso</option> //+00kcal//
+              <option value="1000">Ganho de massa</option> //+1000kcal//
+            </select>
+          </div>
+          <div>
+
+<label class="small-muted"></label>
 <label class="small-muted">Meta de água (ml)</label>
 <input id="metaAgua" class="input" placeholder="2000"/>
 
 <label class="small-muted">Intervalo lembrete de água (min)</label>
 <input id="metaAguaIntervalo" class="input" placeholder="60"/>
 
-            <select id="metaObjetivo" class="input">
-              <option value="-800">Perder gordura (-800 kcal)</option>
-              <option value="0">Manter peso (0 kcal)</option>
-              <option value="1000">Ganho de massa (+1000 kcal)</option>
-            </select>
-          </div>
-          <div>
-            <label class="small-muted">Sexo</label>
-            <select id="metaSexo" class="input"><option value="M">Masculino</option><option value="F">Feminino</option></select>
+
+<div class="section-title">Exercícios</div>
+            
             <label class="small-muted">Nível de atividade</label>
             <select id="metaAtividade" class="input">
               <option value="1.2">Sedentário (1.2)</option>
@@ -627,18 +646,16 @@ scanBtn?.addEventListener('click', async () => {
               <option value="1.725">Muito Ativo (1.725)</option>
               <option value="1.9">Extremamente Ativo (1.9)</option>
             </select>
-            <label class="small-muted">Esteira (km)</label>
+            <label class="small-muted">Cardio (km)</label>
             <input id="metaEsteira" class="input" placeholder="0"/>
           </div>
           <div>
-            <label class="small-muted">Idade (anos)</label>
-            <input id="metaIdade" class="input" placeholder="30"/>
-            <label class="small-muted">Peso (kg)</label>
-            <input id="metaPeso" class="input" placeholder="70"/>
+          
             <label class="small-muted">Musculação (h)</label>
             <input id="metaMusculacao" class="input" placeholder="0"/>
           </div>
         
+
           <div>
             <div class="section-title">Medidas Corporais</div>
             <label class="small-muted">Cintura (cm)</label>
