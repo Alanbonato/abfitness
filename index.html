@@ -49,8 +49,10 @@
 .btn.ghost{background:transparent;border:1px solid #2a2f35;color:var(--text)}
 .grid{display:grid;gap:12px}
 .grid-3{grid-template-columns:1fr 1fr 1fr}
-.grid-4{grid-template-columns:1fr 1fr 1fr 1fr
-  align-items: start;}
+.grid-4{
+  grid-template-columns:1fr 1fr 1fr 1fr;
+  align-items:start;
+}
 .section-title{color:#ffd089;font-weight:800;margin-bottom:8px}
 .small{font-size:13px;color:var(--muted)}
 .table{width:100%;border-collapse:collapse;margin-top:12px}
@@ -66,7 +68,6 @@
 .space{flex:1}
 .small-muted{color:var(--muted);font-size:13px}
 .footer-note{font-size:12px;color:var(--muted);margin-top:8px}
-.table-scroll{max-height:420px;overflow:auto}
 .table-scroll{max-height:420px;overflow:auto}
 
 /* === Ajustes responsivos para celular/tablet === */
@@ -378,36 +379,7 @@ scanBtn?.addEventListener('click', async () => {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <style>
-    /* Estilo do popup de correção */
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 3000;
-      justify-content: center;
-      align-items: center;
-    }
-    .modal.open { display: flex; }
-    .modal-content {
-      background: #0b0d0f;
-      padding: 20px;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-    }
-    .modal-content h3 { margin-top: 0; font-size: 18px; color: var(--accent); } 
-    .modal-content label { display: block; margin: 10px 0 5px; }
-    .modal-content input {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    .modal-actions { margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px; }
-  </style>
+  
 </head>
 
 <body>
@@ -577,6 +549,16 @@ scanBtn?.addEventListener('click', async () => {
             <button id="clearBank" class="chip">Excluir banco</button>
           </div>
         </div>
+
+<!-- Campo de busca do banco -->
+<div style="margin:12px 0;">
+  <input type="text" id="bankSearch" 
+         placeholder="🔍 Buscar alimento..." 
+         style="width:100%; padding:8px; border-radius:6px; 
+                border:1px solid #444; background:#222; color:#fff;">
+</div>
+
+
         <div style="margin-top:12px" class="table-scroll">
           <table class="table" id="bankTable"><thead><tr><th>Alimento</th><th>Prot/100</th><th>Carb/100</th><th>Fat/100</th><th>Kcal/100</th><th></th></tr></thead><tbody></tbody></table>
         </div>
@@ -923,6 +905,21 @@ function renderBank(){
     });
 }
 
+// Filtro de busca no banco de alimentos
+document.getElementById('bankSearch')?.addEventListener('input', (e)=>{
+  const term = e.target.value.toLowerCase();
+  const rows = document.querySelectorAll('#bankTable tr');
+  rows.forEach((row, idx)=>{
+    if(idx===0) return; // pula cabeçalho
+    const nameCell = row.querySelector('td:first-child');
+    if(!nameCell) return;
+    const text = nameCell.textContent.toLowerCase();
+    row.style.display = text.includes(term) ? '' : 'none';
+  });
+});
+
+
+
 function populateFoodSelect(filter=''){
   foodSelect.innerHTML = '<option value="">-- selecione --</option>';
   bankCache
@@ -945,25 +942,58 @@ bankTable.addEventListener('click', async (e)=>{
   const item = bankCache.find(b=>b.id===id);
   if(act==='del'){ if(!confirm('Excluir alimento?')) return; await deleteDoc(doc(db, uidPath(currentUser.uid), 'bank', id)); await loadBank(); }
   if(act==='edit'){
-    newFoodName.value = item.name;
-    newFoodProt.value = item.prot;
-    newFoodCarb.value = item.carb;
-    newFoodFat.value = item.fat;
-    newFoodKcal.value = item.kcal;
+    // Prefill modal showing values in the original base (ex: 90 g -> 200 kcal)
+    const baseQty = item.baseQty || 100;
+    const displayFactor = baseQty / 100;
+
+    newFoodName.value = item.name || '';
+    // fill base qty when not 100
     newFoodBase.value = '100';
-    newFoodBaseQty.value = '';
+    newFoodBaseQty.value = (baseQty && baseQty !== 100) ? baseQty : '';
+
+    // Convert stored per-100g values back to the base (so user sees the original numbers)
+    newFoodProt.value = ((item.prot || 0) * displayFactor).toFixed(3);
+    newFoodCarb.value = ((item.carb || 0) * displayFactor).toFixed(3);
+    newFoodFat.value  = ((item.fat  || 0) * displayFactor).toFixed(3);
+    newFoodKcal.value = Math.round((item.kcal || 0) * displayFactor);
+
     foodModal.classList.add('open');
+
+    // On save: treat the inputs as values in the chosen base, then normalize to per 100g for storage
     saveFoodBtn.onclick = async ()=>{
+      const name = newFoodName.value.trim();
+      if(!name){ alert('Nome obrigatório'); return; }
+
+      const protInput = parseFloat(newFoodProt.value) || 0;
+      const carbInput = parseFloat(newFoodCarb.value) || 0;
+      const fatInput  = parseFloat(newFoodFat.value) || 0;
+      const kcalInput = (newFoodKcal.value !== '') ? parseFloat(newFoodKcal.value) : null;
+
+      const explicitBaseQty = parseFloat(newFoodBaseQty.value);
+      const baseQtyToSave = (Number.isFinite(explicitBaseQty) && explicitBaseQty > 0) ? explicitBaseQty : 100;
+
+      const scaleFactor = 100 / baseQtyToSave;
+
+      const protPer100 = protInput * scaleFactor;
+      const carbPer100 = carbInput * scaleFactor;
+      const fatPer100  = fatInput * scaleFactor;
+      const kcalPer100 = (kcalInput !== null && !isNaN(kcalInput))
+                         ? Math.round(kcalInput * scaleFactor)
+                         : calcKcalFromMacros(protPer100, carbPer100, fatPer100);
+
       await updateDoc(doc(db, uidPath(currentUser.uid), 'bank', id), {
-        name: newFoodName.value.trim(),
-        prot: parseFloat(newFoodProt.value)||0,
-        carb: parseFloat(newFoodCarb.value)||0,
-        fat: parseFloat(newFoodFat.value)||0,
-        kcal: parseInt(newFoodKcal.value) || calcKcalFromMacros(parseFloat(newFoodProt.value)||0,parseFloat(newFoodCarb.value)||0,parseFloat(newFoodFat.value)||0)
+        name,
+        prot: parseFloat(protPer100.toFixed(3)),
+        carb: parseFloat(carbPer100.toFixed(3)),
+        fat:  parseFloat(fatPer100.toFixed(3)),
+        kcal: Math.round(kcalPer100),
+        baseQty: baseQtyToSave
       });
+
       foodModal.classList.remove('open'); await loadBank();
     };
   }
+
 });
 
 // Listener para corrigir itens suspeitos na Auditoria
@@ -977,31 +1007,62 @@ auditTable.addEventListener('click', async (e)=>{
   if(act === 'audit-corr' && item){
     // Preenche modal com os dados do alimento
     newFoodName.value = item.name;
-    newFoodProt.value = item.prot;
-    newFoodCarb.value = item.carb;
-    newFoodFat.value = item.fat;
-    newFoodKcal.value = item.kcal;
-    newFoodBase.value = '100';
-    newFoodBaseQty.value = '';
+
+// se você já tem salvo os valores originais (ex.: data.protRaw, etc.),
+// preencha com eles. Se ainda não tem, precisa começar a salvar.
+// Por enquanto, se só salvou normalizado, use isso mesmo:
+newFoodProt.value = item.protRaw || item.prot;
+newFoodCarb.value = item.carbRaw || item.carb;
+newFoodFat.value  = item.fatRaw  || item.fat;
+newFoodKcal.value = item.kcalRaw || item.kcal;
+
+if (newFoodBaseQty) {
+  newFoodBaseQty.value = item.baseQty || 100;
+}
 
     foodModal.classList.add('open');
     
-    // Ao salvar, atualiza o item no banco
-    saveFoodBtn.onclick = async ()=>{
-      await updateDoc(doc(db, uidPath(currentUser.uid), 'bank', id), {
-        name: newFoodName.value.trim(),
-        prot: parseFloat(newFoodProt.value)||0,
-        carb: parseFloat(newFoodCarb.value)||0,
-        fat: parseFloat(newFoodFat.value)||0,
-        kcal: parseInt(newFoodKcal.value) || calcKcalFromMacros(
-          parseFloat(newFoodProt.value)||0,
-          parseFloat(newFoodCarb.value)||0,
-          parseFloat(newFoodFat.value)||0
-        )
-      });
-      foodModal.classList.remove('open'); 
-      await loadBank();
-    };
+// Ao salvar, atualiza o item no banco (com conversão da base para 100 g)
+saveFoodBtn.onclick = async ()=>{
+  const name = newFoodName.value.trim();
+  if(!name){ alert('Nome obrigatório'); return; }
+
+  const protInput = parseFloat(newFoodProt.value) || 0;
+  const carbInput = parseFloat(newFoodCarb.value) || 0;
+  const fatInput  = parseFloat(newFoodFat.value) || 0;
+  const kcalInput = (newFoodKcal.value !== '') ? parseFloat(newFoodKcal.value) : null;
+
+  const explicitBaseQty = parseFloat(newFoodBaseQty.value);
+  const baseQty = (Number.isFinite(explicitBaseQty) && explicitBaseQty > 0) ? explicitBaseQty : 100;
+
+  const scaleFactor = 100 / baseQty;
+
+  const protPer100 = protInput * scaleFactor;
+  const carbPer100 = carbInput * scaleFactor;
+  const fatPer100  = fatInput  * scaleFactor;
+  const kcalPer100 = (kcalInput !== null && !isNaN(kcalInput))
+                     ? Math.round(kcalInput * scaleFactor)
+                     : calcKcalFromMacros(protPer100, carbPer100, fatPer100);
+
+  await updateDoc(doc(db, uidPath(currentUser.uid), 'bank', id), {
+    name,
+    prot: parseFloat(protPer100.toFixed(3)),
+    carb: parseFloat(carbPer100.toFixed(3)),
+    fat:  parseFloat(fatPer100.toFixed(3)),
+    kcal: Math.round(kcalPer100),
+    baseQty: baseQty,
+    // se quiser também salvar os valores originais para reuso:
+    protRaw: protInput,
+    carbRaw: carbInput,
+    fatRaw:  fatInput,
+    kcalRaw: kcalInput !== null ? kcalInput : calcKcalFromMacros(protInput, carbInput, fatInput)
+  });
+
+  foodModal.classList.remove('open'); 
+  await loadBank();
+};
+
+
   }
 });
 
@@ -1017,13 +1078,41 @@ document.getElementById('cancelAddFood').addEventListener('click', ()=>{
 async function createFood(){
   const name = newFoodName.value.trim();
   if(!name){ alert('Nome obrigatório'); return; }
-  const prot = parseFloat(newFoodProt.value)||0;
-  const carb = parseFloat(newFoodCarb.value)||0;
-  const fat = parseFloat(newFoodFat.value)||0;
-  const kcal = parseInt(newFoodKcal.value) || calcKcalFromMacros(prot,carb,fat);
-  await addDoc(collection(db, uidPath(currentUser.uid), 'bank'), { name, prot, carb, fat, kcal });
-  foodModal.classList.remove('open'); await loadBank();
+
+  // valores que o usuário digitou (podem representar uma base diferente de 100)
+  const protInput = parseFloat(newFoodProt.value) || 0;
+  const carbInput = parseFloat(newFoodCarb.value) || 0;
+  const fatInput  = parseFloat(newFoodFat.value) || 0;
+  const kcalInput = (newFoodKcal.value !== '') ? parseFloat(newFoodKcal.value) : null;
+
+  // determina a base: se usuario preencheu "Quantidade da base", usa ela; senão assume 100
+  const explicitBaseQty = parseFloat(newFoodBaseQty.value);
+  const baseQty = (Number.isFinite(explicitBaseQty) && explicitBaseQty > 0) ? explicitBaseQty : 100;
+
+  // fator para converter os valores informados para "por 100 g"
+  const scaleFactor = (baseQty > 0) ? (100 / baseQty) : 1;
+
+  const protPer100 = protInput * scaleFactor;
+  const carbPer100 = carbInput * scaleFactor;
+  const fatPer100  = fatInput  * scaleFactor;
+  const kcalPer100 = (kcalInput !== null && !isNaN(kcalInput))
+                     ? Math.round(kcalInput * scaleFactor)
+                     : calcKcalFromMacros(protPer100, carbPer100, fatPer100);
+
+  // opcional: guardamos também baseQty no DB para futuras edições
+  await addDoc(collection(db, uidPath(currentUser.uid), 'bank'), {
+    name,
+    prot: parseFloat(protPer100.toFixed(3)),
+    carb: parseFloat(carbPer100.toFixed(3)),
+    fat:  parseFloat(fatPer100.toFixed(3)),
+    kcal: Math.round(kcalPer100),
+    baseQty: baseQty // guarda a base (ex: 90) para editar corretamente depois
+  });
+
+  foodModal.classList.remove('open');
+  await loadBank();
 }
+
 
 document.getElementById('exportBank').addEventListener('click', async ()=>{
   if(!currentUser) return alert('Logue-se');
@@ -1077,24 +1166,52 @@ populateFoodSelect(searchFood.value);
 function getMealList(meal){ return currentDayData.meals?.[meal] || []; }
 
 function renderMealItems(){
-    mealItemsTable.innerHTML = '';
-    const items = getMealList(selectedMeal);
-    items.forEach((it, idx)=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${it.name}</td>
-        <td>${Number(it.qty) || 0}</td>
-        <td>${(Number(it.prot)||0).toFixed(2)}</td>
-        <td>${(Number(it.carb)||0).toFixed(2)}</td>
-        <td>${(Number(it.fat)||0).toFixed(2)}</td>
-        <td>${Number(it.kcal)||0}</td>
-        <td>
-          <button class="chip" data-idx="${idx}" data-act="edit">Corrigir</button>
-          <button class="chip" data-idx="${idx}" data-act="rem">Remover</button>
-        </td>`;
-      mealItemsTable.appendChild(tr);
-    });
+  mealItemsTable.innerHTML = '';
+  const items = getMealList(selectedMeal);
+
+  let totalProt = 0, totalCarb = 0, totalFat = 0, totalKcal = 0;
+
+  items.forEach((it, idx)=>{
+    const prot = Number(it.prot) || 0;
+    const carb = Number(it.carb) || 0;
+    const fat  = Number(it.fat)  || 0;
+    const kcal = Number(it.kcal) || 0;
+
+    totalProt += prot;
+    totalCarb += carb;
+    totalFat  += fat;
+    totalKcal += kcal;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${it.name}</td>
+      <td>${Number(it.qty) || 0}</td>
+      <td>${prot.toFixed(2)}</td>
+      <td>${carb.toFixed(2)}</td>
+      <td>${fat.toFixed(2)}</td>
+      <td>${kcal}</td>
+      <td>
+        <button class="chip" data-idx="${idx}" data-act="edit">Corrigir</button>
+        <button class="chip" data-idx="${idx}" data-act="rem">Remover</button>
+      </td>`;
+    mealItemsTable.appendChild(tr);
+  });
+
+  // Adiciona linha de totais
+  if(items.length > 0){
+    const trTotal = document.createElement('tr');
+    trTotal.innerHTML = `
+      <td><strong>Total</strong></td>
+      <td></td>
+      <td><strong>${totalProt.toFixed(2)}</strong></td>
+      <td><strong>${totalCarb.toFixed(2)}</strong></td>
+      <td><strong>${totalFat.toFixed(2)}</strong></td>
+      <td><strong>${totalKcal}</strong></td>
+      <td></td>`;
+    mealItemsTable.appendChild(trTotal);
   }
+}
+
 
 mealItemsTable.addEventListener('click', async (e)=>{
     const btn = e.target.closest('button');
