@@ -10,7 +10,6 @@
 <link rel="apple-touch-icon" sizes="167x167" href="apple-touch-icon-167x167.png?v=2">
 <link rel="apple-touch-icon" sizes="152x152" href="apple-touch-icon-152x152.png?v=2">
 <link rel="apple-touch-icon" sizes="120x120" href="apple-touch-icon-120x120.png?v=2">
-<link rel="manifest" href="/manifest.json">
 
 <!-- Favicon padrão -->
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=2">
@@ -801,55 +800,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// -- ADICIONE estas linhas após os imports existentes e após `const db = getFirestore(app);` --
-
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
-
-const messaging = getMessaging(app);
-
-// VAPID key que você forneceu (colei exatamente a sua)
-const VAPID_KEY = "BCZglk7G1mIt1CsqY0dlVtHyM_8w-Bqyxmm7aGOmc6CzBahlmm8s8LP7r0DqmaDF8tU6GU7R4sYUhoVP_gZV0hs";
-
-// Registra service worker, pede permissão de notificação e salva o token (no documento meta/settings do usuário)
-async function registerAndSaveFCMTokenForCurrentUser(){
-  try {
-    if (!('serviceWorker' in navigator)) return null;
-
-    // registra o SW do firebase (arquivo que criaremos)
-    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-
-    // pede permissão (no browser)
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
-      console.warn('Permissão de Notificação não concedida');
-      return null;
-    }
-
-    // obtém token FCM (usa reg. do service worker)
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
-    if (token && currentUser) {
-      // salva token no documento de meta do usuário (campo fcmToken)
-      await setDoc(metaDoc(currentUser.uid), { fcmToken: token }, { merge: true });
-      console.log('FCM token salvo no metaDoc');
-    }
-    return token;
-  } catch (err) {
-    console.error('Erro registrando FCM token', err);
-    return null;
-  }
-}
-
-// trata mensagens quando app está em foreground
-onMessage(messaging, (payload) => {
-  console.log('Mensagem FCM (foreground):', payload);
-  if ("Notification" in window && Notification.permission === "granted") {
-    const title = (payload.notification && payload.notification.title) || 'Notificação';
-    const body = (payload.notification && payload.notification.body) || '';
-    new Notification(title, { body });
-  }
-});
-
-
 /* UI refs */
 const loginScreen = document.getElementById('loginScreen');
 const mainScreen = document.getElementById('mainScreen');
@@ -977,38 +927,7 @@ loginBtn.addEventListener('click', async ()=>{
   try{ await signInWithEmailAndPassword(auth, email, pass); }
   catch(e){ console.error(e); alert(e.message); }
 });
-logoutBtn.addEventListener('click', async ()=>{
-  try {
-    if (currentUser) {
-      // limpa token armazenado (apenas zera, opcional)
-      await setDoc(metaDoc(currentUser.uid), { fcmToken: '' }, { merge: true });
-    }
-    // tenta desregistrar service worker do firebase (se houver)
-    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for (const r of regs) {
-        if (r.active && r.active.scriptURL && r.active.scriptURL.includes('firebase-messaging-sw.js')) {
-          await r.unregister();
-        }
-      }
-    }
-  } catch (e) { console.warn('Erro durante logout cleanup:', e); }
-
-  // limpa timer global de lembrete de água (se existir)
-  try {
-    if (window._aguaIntervalId) {
-      clearInterval(window._aguaIntervalId);
-      window._aguaIntervalId = null;
-      console.log('Lembrete de água: timer limpo no logout');
-    }
-  } catch(e) {
-    console.warn('Erro limpando timer de agua no logout', e);
-  }
-
-  await signOut(auth);
-});
-
-
+logoutBtn.addEventListener('click', async ()=>{ await signOut(auth); });
 
 onAuthStateChanged(auth, async (u)=>{
   currentUser = u;
@@ -1020,19 +939,9 @@ onAuthStateChanged(auth, async (u)=>{
     topnav.style.display='';
     showPage('registro');
     registroDate.value = dateToYMD(new Date());
-        await loadBank();
+    await loadBank();
     await loadMeta();
-
-    // registra FCM token (pedirá permissão) e inicia lembrete de água local
-    try {
-      await registerAndSaveFCMTokenForCurrentUser();
-    } catch(e){ console.warn('Erro FCM register:', e); }
-
-    // inicia lembrete de água (isso funciona enquanto a aba estiver aberta)
-    try { await iniciarLembreteAgua(); } catch(e){ console.warn('Erro iniciar lembrete:', e); }
-
     await loadDay(registroDate.value);
-
   } else {
     currentUser = null;
     loginScreen.style.display='';
@@ -1674,15 +1583,11 @@ aplicarMeta.addEventListener('click', async ()=>{
     updatedAt: new Date().toISOString()
   };
 
+// Usa merge:true para não apagar campos que você não incluiu (extra segurança)
+await setDoc(metaDoc(currentUser.uid), payload, { merge: true });
+
 // Atualiza variáveis locais
 await loadMeta();
-
-// reinicia o lembrete de água com o novo intervalo (limpa o antigo automaticamente)
-try {
-  await iniciarLembreteAgua();
-} catch(e){
-  console.warn('Erro ao reiniciar lembrete após aplicar meta:', e);
-}
 
 // 🔑 Atualiza imediatamente a aba Registro com a nova meta
 if (window.userMeta?.meta) {
@@ -2107,12 +2012,6 @@ window._ab = { loadBank, loadDay, calcKcalFromMacros };
 
 <script>
 (function(){
-
-// variável global para controlar o timer do lembrete de água
-  // (adiciona um ponto que já existe no início do script)
-  window._aguaIntervalId = null;
-
-
   // Tabelas de classificação por sexo e faixa etária
   const tabelas = {
     M: [
