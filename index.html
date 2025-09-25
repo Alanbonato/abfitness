@@ -478,6 +478,16 @@ scanBtn?.addEventListener('click', async () => {
 });
 
 
+// === Força parar câmera ao clicar em "Cancelar" no modal de adicionar alimento ===
+const cancelAddFoodBtn = document.getElementById('cancelAddFoodBtn');
+if(cancelAddFoodBtn){
+  cancelAddFoodBtn.addEventListener('click', async ()=>{
+    try { await stopAllVideoStreams(); } catch(e){}
+    if(preview) preview.style.display = 'none';
+  });
+}
+
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
