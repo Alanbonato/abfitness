@@ -477,17 +477,6 @@ scanBtn?.addEventListener('click', async () => {
   }
 });
 
-
-// === Força parar câmera ao clicar em "Cancelar" no modal de adicionar alimento ===
-const cancelAddFoodBtn = document.getElementById('cancelAddFoodBtn');
-if(cancelAddFoodBtn){
-  cancelAddFoodBtn.addEventListener('click', async ()=>{
-    try { await stopAllVideoStreams(); } catch(e){}
-    if(preview) preview.style.display = 'none';
-  });
-}
-
-
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -1196,15 +1185,38 @@ saveFoodBtn.onclick = async ()=>{
 
 
 openAddFood.addEventListener('click', ()=>{ newFoodName.value=''; newFoodProt.value=''; newFoodCarb.value=''; newFoodFat.value=''; newFoodKcal.value=''; newFoodBaseQty.value=''; foodModal.classList.add('open'); saveFoodBtn.onclick = createFood; });
-closeFoodModal.addEventListener('click', ()=>foodModal.classList.remove('open'));
 
 
 
-// também garante que o botão "Fechar" do canto pare a câmera
-document.getElementById('closeFoodModal').addEventListener('click', async ()=>{
-  try { await stopAllVideoStreams(); } catch(e){ console.warn(e); }
-  if(preview) preview.style.display = 'none';
-  foodModal.classList.remove('open');
+
+document.getElementById('closeFoodModal').addEventListener('click', async () => {
+  // tenta usar a função exposta caso exista
+  try {
+    if (window.stopAllVideoStreams && typeof window.stopAllVideoStreams === 'function') {
+      await window.stopAllVideoStreams();
+    }
+  } catch (e) {
+    console.warn('erro ao parar streams via window.stopAllVideoStreams():', e);
+  }
+
+  // garante que paramos o <video> mesmo que a função acima não exista
+  try {
+    const prev = document.getElementById('previewScanner');
+    if (prev) {
+      try { prev.pause(); } catch(e){}
+      try {
+        if (prev.srcObject && prev.srcObject.getTracks) {
+          prev.srcObject.getTracks().forEach(t => { try { t.stop(); } catch(e){} });
+        }
+      } catch(e){ console.warn('erro parando tracks do preview:', e); }
+      try { prev.srcObject = null; } catch(e){}
+      prev.style.display = 'none';
+    }
+  } catch(e){ console.warn('erro ao manipular preview element:', e); }
+
+  // Por fim fecha o modal
+  const foodModal = document.getElementById('foodModal');
+  if (foodModal) foodModal.classList.remove('open');
 });
 
 async function createFood(){
