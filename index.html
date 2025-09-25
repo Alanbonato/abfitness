@@ -1198,10 +1198,18 @@ saveFoodBtn.onclick = async ()=>{
 openAddFood.addEventListener('click', ()=>{ newFoodName.value=''; newFoodProt.value=''; newFoodCarb.value=''; newFoodFat.value=''; newFoodKcal.value=''; newFoodBaseQty.value=''; foodModal.classList.add('open'); saveFoodBtn.onclick = createFood; });
 closeFoodModal.addEventListener('click', ()=>foodModal.classList.remove('open'));
 
-document.getElementById('cancelAddFood').addEventListener('click', ()=>{
+document.getElementById('cancelAddFood').addEventListener('click', async ()=>{
+  try { await stopAllVideoStreams(); } catch(e){ console.warn(e); }
+  if(preview) preview.style.display = 'none';
   foodModal.classList.remove('open');
 });
 
+// também garante que o botão "Fechar" do canto pare a câmera
+document.getElementById('closeFoodModal').addEventListener('click', async ()=>{
+  try { await stopAllVideoStreams(); } catch(e){ console.warn(e); }
+  if(preview) preview.style.display = 'none';
+  foodModal.classList.remove('open');
+});
 
 async function createFood(){
   const name = newFoodName.value.trim();
