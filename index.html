@@ -942,6 +942,9 @@ onAuthStateChanged(auth, async (u)=>{
     await loadBank();
     await loadMeta();
     await loadDay(registroDate.value);
+// após carregar meta e dia, (re)inicia lembrete de água, se configurado
+try { iniciarLembreteAgua(); } catch(e){ console.warn('erro iniciando lembrete apos login', e); }
+
   } else {
     currentUser = null;
     loginScreen.style.display='';
@@ -950,6 +953,9 @@ onAuthStateChanged(auth, async (u)=>{
     userEmail.textContent = '';
  // 🔑 Garante que a logo desaparece no logout
     document.querySelector('.brand').style.display = 'none';
+// garante parar o timer ao deslogar
+try { pararLembreteAgua(); } catch(e){ console.warn('erro parando lembrete no logout', e); }
+
   
   }
 });
@@ -1589,6 +1595,10 @@ await setDoc(metaDoc(currentUser.uid), payload, { merge: true });
 // Atualiza variáveis locais
 await loadMeta();
 
+// reinicia o lembrete com o novo valor salvo
+try { iniciarLembreteAgua(); } catch(e){ console.warn('erro iniciando lembrete ao aplicar meta', e); }
+
+
 // 🔑 Atualiza imediatamente a aba Registro com a nova meta
 if (window.userMeta?.meta) {
   metaDia.textContent = 'Meta diária: ' + window.userMeta.meta + ' kcal';
@@ -1940,7 +1950,48 @@ if(!document.getElementById('resetAguaBtn')){
   });
 }
 
-// Iniciar lembrete de água (versão corrigida)
+// ===== LEMBRETE DE ÁGUA (consolidado e robusto) =====
+function showInAppWaterToast(msg){
+  let t = document.getElementById('aguaToast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'aguaToast';
+    Object.assign(t.style, {
+      position: 'fixed',
+      right: '50%',
+      bottom: '20%',
+      transform: 'translateX(50%)',
+      zIndex: 99999,
+      background: '#2196f3',
+      color: '#fff',
+      fontSize: '20px',
+      fontWeight: 'bold',
+      padding: '20px 28px',
+      borderRadius: '14px',
+      boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
+      transition: 'opacity .3s',
+      opacity: '0',
+      maxWidth: '320px',
+      textAlign: 'center'
+    });
+    document.body.appendChild(t);
+  }
+  t.textContent = msg || 'Hora de beber um copo de água 💧';
+  t.style.opacity = '1';
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(()=>{ t.style.opacity = '0'; }, 5000);
+}
+
+function pararLembreteAgua(){
+  try{
+    if(window._aguaIntervalId){
+      clearInterval(window._aguaIntervalId);
+      window._aguaIntervalId = null;
+      console.log('Lembrete de água parado');
+    }
+  } catch(e){ console.warn('pararLembreteAgua falhou', e); }
+}
+
 async function iniciarLembreteAgua(){
   // limpa timer antigo (se existir)
   try {
@@ -1960,34 +2011,36 @@ async function iniciarLembreteAgua(){
     return;
   }
 
-  // pede permissão de notificação só se preciso
+  // pede permissão de notificação (se suportado)
   if ("Notification" in window) {
-    let perm = Notification.permission;
-    if (perm !== 'granted') {
-      try {
-        perm = await Notification.requestPermission();
-      } catch(e) {
-        console.warn('requestPermission falhou', e);
-        return;
+    try {
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission();
       }
-    }
-    if (perm !== 'granted') {
-      console.warn('Permissão de notificação não concedida');
-      return;
+    } catch(e){
+      console.warn('requestPermission falhou', e);
     }
   } else {
     console.warn('Notificações não suportadas neste navegador');
-    return;
   }
 
   // cria novo timer e guarda o id globalmente
   window._aguaIntervalId = setInterval(()=>{
     try {
       if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("Lembrete de Água 💧", { body: "Hora de beber um copo de água!" });
+        new Notification("Lembrete de Água 💧", { body: "Hora de beber um copo de água!" , tag: 'agua-reminder' });
+      } else {
+        // fallback visual in-page
+        showInAppWaterToast('Hora de beber um copo de água 💧');
       }
-      const audio = new Audio("beep.mp3");
-      audio.play().catch(()=>{/* autoplay pode falhar se não houver interação */});
+
+      // tenta tocar som (adicione beep.mp3 na raiz do projeto) — senão vibra (mobile)
+      try {
+        const audio = new Audio("beep.mp3");
+        audio.play().catch(()=>{ if(navigator.vibrate) navigator.vibrate(250); });
+      } catch(e){
+        if(navigator.vibrate) navigator.vibrate(250);
+      }
     } catch(err) {
       console.error('Erro no lembrete de água:', err);
     }
@@ -1995,6 +2048,18 @@ async function iniciarLembreteAgua(){
 
   console.log('Lembrete de água iniciado. Intervalo (min):', intervalo, 'intervalId:', window._aguaIntervalId);
 }
+
+const metaAguaIntervaloEl = document.getElementById('metaAguaIntervalo');
+metaAguaIntervaloEl?.addEventListener('change', (e)=>{
+  const v = parseInt(e.target.value, 10) || 0;
+  if(!window.userMeta) window.userMeta = {};
+  window.userMeta.metaAguaIntervalo = v;
+  if(v <= 0) {
+    try { pararLembreteAgua(); } catch(e){}
+  } else {
+    try { iniciarLembreteAgua(); } catch(e){}
+  }
+});
 
 
 window._ab = { loadBank, loadDay, calcKcalFromMacros };
