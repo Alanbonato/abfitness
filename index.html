@@ -479,7 +479,25 @@ scanBtn?.addEventListener('click', async () => {
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<script>
+// 🔹 Plugin para desenhar texto no centro do donut
+Chart.register({
+id: 'centerText',
+beforeDraw(chart, args, options) {
+if (options.text) {
+const { ctx, chartArea: { width, height } } = chart;
+ctx.save();
+ctx.font = 'bold 16px Inter, sans-serif';
+ctx.fillStyle = getComputedStyle(document.documentElement)
+.getPropertyValue('--text').trim() || '#fff';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(options.text, width / 2, height / 2);
+ctx.restore();
+}
+}
+});
+</script>
   
 </head>
 
@@ -629,6 +647,11 @@ scanBtn?.addEventListener('click', async () => {
               <div class="badge" id="sumCarb">Carboidrato<br><strong>0 g</strong></div>
               <div class="badge" id="sumFat">Gordura<br><strong>0 g</strong></div>
               <div class="badge" id="sumKcal">Calorias<br><strong>0 kcal</strong></div>
+<!-- 🔵 Novo badge dentro do mesmo flex -->
+  <div class="badge" id="sumFatLoss" style="background:#1e3a8a;color:#fff">
+    Gordura perdida<br><strong>0 g</strong>
+  </div>
+</div>
             </div>
           </div>
 
@@ -1478,6 +1501,14 @@ function computeDaySummary(){
   const metaVal = window.userMeta?.meta || 0;
   restante.textContent = 'Restante: ' + Math.max(Math.round(metaVal - k), 0) + ' kcal';
 
+// 🔹 Mensagem para dentro do donut
+let centerMsg = '';
+if (k <= metaVal) {
+centerMsg = `Restam ${metaVal - k} kcal`;
+} else {
+centerMsg = `Passou ${k - metaVal} kcal`;
+}
+
   // Pega cores do CSS (mantém esquema de cores do app)
   const css = getComputedStyle(document.documentElement);
   const accent = (css.getPropertyValue('--accent')||'#f59e0b').trim();
@@ -1507,14 +1538,31 @@ function computeDaySummary(){
   maintainAspectRatio: false,
   cutout: '80%',
   plugins: {
-    legend: { display: false }
+    legend: { display: false },
+centerText: { text: centerMsg } // 👈 usa o plugin
   }
 }
       });
     } else {
-      kcalChart.data.datasets[0].data = dataK;
-      kcalChart.update();
-    }
+kcalChart.data.datasets[0].data = dataK;
+kcalChart.options.plugins.centerText.text = centerMsg; // 👈 atualiza msg
+kcalChart.update();
+}
+
+// --- Calcular gordura perdida ---
+// TDEE vem da aba Check up pessoal
+const tdee = window.userMeta?.tdee || 0;
+let deficit = tdee - k; // diferença entre TDEE e calorias ingeridas
+let fatLossGrams = 0;
+if (deficit > 0) {
+  fatLossGrams = (deficit / 7).toFixed(1);
+}
+const fatLossEl = document.getElementById('sumFatLoss');
+if (fatLossEl) {
+  fatLossEl.innerHTML = 'Gordura perdida<br><strong>' + fatLossGrams + ' g</strong>';
+}
+
+
 
     // texto abaixo do donut
     const t = document.getElementById('kcalText');
