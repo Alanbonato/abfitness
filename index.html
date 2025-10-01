@@ -326,18 +326,6 @@ html, body {
   margin-bottom: 6px; /* pequeno espaço */
 }
 
-/* Seção de configuração de refeições (metabolismo) */
-.meals-config-card { background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent); border:1px solid var(--line); border-radius:10px; padding:12px; color: #fff; }
-.meals-config-card .meals-list { margin-top:6px; display:flex; flex-direction:column; gap:8px; }
-.meals-config-card .meal-item { display:flex; gap:8px; align-items:center; }
-.meals-config-card .meal-item .input { flex:1; background:#0b0d0f; color:#fff; border:1px solid #222; }
-.meals-config-card .meal-item .chip,
-.meals-config-card .meal-item .btn-del { background:transparent; border:1px solid #222; color:#fff; padding:6px 8px; cursor:pointer; }
-.meals-config-card .meal-item .chip:hover,
-.meals-config-card .meal-item .btn-del:hover { opacity:0.9; }
-.meals-config-card .small-muted { color: rgba(255,255,255,0.65); font-size:12px; }
-
-
 </style>
 
 <script type="module">
@@ -803,7 +791,6 @@ ctx.restore();
           <button id="aplicarMeta" class="btn ghost">Aplicar como Meta</button>
         </div>
 
-
         <div style="margin-top:14px" class="flex">
           <div class="badge" id="tmbBadge">TMB<br><strong>0 kcal</strong></div>
           <div class="badge" id="esteiraBadge">Esteira<br><strong>0 kcal</strong></div>
@@ -813,22 +800,28 @@ ctx.restore();
           <div class="badge" id="bfBadge">BF<br><strong>0 %</strong></div>
         </div>
 
-<!-- INÍCIO: Seção Refeições (Check-up pessoal) -->
-<div class="card meals-config-card" style="margin-bottom:12px">
+<!-- ===== REFEIÇÕES (Configuração) ===== -->
+<div class="card" id="mealsConfigCard" style="margin-top:14px">
   <div class="section-title">Refeições</div>
+  <div class="small-muted">Monte a sequência de refeições ideal para o seu dia, elas aparecerão na aba <strong>Registro</strong>. Use as setas para movê-las, edite o nome diretamente ou clique em Excluir para remover (os itens do dia atual também serão removidos).</div>
 
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-    <input id="newMealName" class="input" placeholder="Nome da nova refeição (ex: Ceia)" />
+ <!-- Adicionar nova refeição -->
+  <div style="margin-top:8px;display:flex;gap:8px">
+    <input id="newMealName" class="input" placeholder="Nova refeição (ex: Ceia)" />
     <button id="addMealBtn" class="btn">Adicionar</button>
   </div>
 
-  <div id="mealConfigList" class="meals-list">
-    <!-- JS irá renderizar aqui: linhas com input (label) + botão Excluir -->
-  </div>
+  <!-- Lista dinâmica de refeições (inputs + botões subir/descer/excluir) -->
+  <div id="mealsConfigList" style="margin-top:12px"></div>
 
-  <div style="margin-top:6px" class="small-muted">Renomeie ou exclua refeições aqui. Alterações são aplicadas imediatamente na aba Registro.</div>
+ 
+
+  <div style="margin-top:8px;display:flex;justify-content:flex-end">
+    <button id="saveMealsBtn" class="btn ghost">Salvar Refeições</button>
+  </div>
 </div>
-<!-- FIM: Seção Refeições -->
+<!-- ===== FIM REFEIÇÕES ===== -->
+
 
 
       </div>
@@ -1359,7 +1352,6 @@ populateFoodSelect(searchFood.value);
   renderMealItems();
   computeDaySummary();
   atualizarStatusAgua();
-  renderMealButtons();
   metaDia.textContent = 'Meta diária: ' + (window.userMeta?.meta||0) + ' kcal';
 }
 
@@ -1752,13 +1744,211 @@ async function loadMeta(){
   if(ms.exists()){
     window.userMeta = ms.data();
 
-// após carregar window.userMeta
-if(window.userMeta && window.userMeta.mealNames){
-  // sobrescreve mealNames com o que está salvo no Firestore
-  mealNames = window.userMeta.mealNames;
+/* ====== Refeições - template personalizável ====== */
+// Default inicial (caso usuário ainda não tenha salvo)
+const defaultMeals = [
+  { id: 'cafedamanha', label: 'Café da manhã' },
+  { id: 'lanchmanha',  label: 'Lanche manhã' },
+  { id: 'almoco',      label: 'Almoço' },
+  { id: 'lanchetarde', label: 'Lanche tarde' },
+  { id: 'pretreino',   label: 'Pré-treino' },
+  { id: 'postreino',   label: 'Pós-treino' },
+  { id: 'jantar',      label: 'Jantar' }
+];
+
+const mealsConfigList = document.getElementById('mealsConfigList');
+const newMealName = document.getElementById('newMealName');
+const addMealBtn = document.getElementById('addMealBtn');
+const saveMealsBtn = document.getElementById('saveMealsBtn');
+
+// Garante que exista um template de refeições no userMeta
+async function ensureMealsTemplate(){
+  if(!window.userMeta) window.userMeta = {};
+  if(!Array.isArray(window.userMeta.mealsTemplate) || window.userMeta.mealsTemplate.length === 0){
+    window.userMeta.mealsTemplate = defaultMeals.slice();
+    if(currentUser){
+      try {
+        await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
+      } catch(e){ console.warn('Falha ao salvar mealsTemplate padrão:', e); }
+    }
+  }
 }
-renderMealsConfig();
-renderMealButtons();
+
+// Renderiza os botões da área de Registro (substitui o HTML estático)
+function renderMealButtons(){
+  const container = document.getElementById('mealBtns');
+  if(!container) return;
+  container.innerHTML = '';
+  (window.userMeta?.mealsTemplate || defaultMeals).forEach(m=>{
+    const btn = document.createElement('button');
+    btn.className = 'chip meal';
+    btn.dataset.meal = m.id;
+    btn.textContent = m.label;
+    container.appendChild(btn);
+  });
+  attachMealButtonHandlers();
+  // Mantém o botão ativo se existir
+  const active = container.querySelector(`.chip[data-meal="${selectedMeal}"]`);
+  if(active) active.classList.add('active');
+}
+
+// Renderiza lista de configuração dentro do Check-up Pessoal
+function renderMealsConfig(){
+  if(!mealsConfigList) return;
+  mealsConfigList.innerHTML = '';
+  const arr = (window.userMeta?.mealsTemplate || defaultMeals);
+  arr.forEach((m, idx) => {
+    const row = document.createElement('div');
+    row.className = 'flex';
+    row.style.alignItems = 'center';
+    row.style.gap = '8px';
+    row.style.marginBottom = '8px';
+    row.innerHTML = `
+      <input class="input meal-label" data-id="${m.id}" value="${m.label}" style="flex:1" />
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="chip btn-up" data-idx="${idx}" title="Subir">▲</button>
+        <button class="chip btn-down" data-idx="${idx}" title="Descer">▼</button>
+      </div>
+      <button class="chip" style="background:#8b1f1f;color:#fff" data-idx="${idx}" data-act="del">Excluir</button>
+    `;
+    mealsConfigList.appendChild(row);
+  });
+
+  // listeners: rename
+  mealsConfigList.querySelectorAll('.meal-label').forEach(inp=>{
+    inp.addEventListener('change', async (e)=>{
+      const id = e.target.dataset.id;
+      const m = window.userMeta.mealsTemplate.find(x => x.id === id);
+      if(m){
+        m.label = e.target.value.trim() || m.label;
+        await saveMealsTemplate();
+        renderMealButtons();
+      }
+    });
+  });
+
+  // listeners: subir
+  mealsConfigList.querySelectorAll('.btn-up').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = parseInt(btn.dataset.idx);
+      if(idx <= 0) return;
+      const arr = window.userMeta.mealsTemplate;
+      [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
+      await saveMealsTemplate();
+      renderMealsConfig();
+      renderMealButtons();
+    });
+  });
+
+  // listeners: descer
+  mealsConfigList.querySelectorAll('.btn-down').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = parseInt(btn.dataset.idx);
+      const arr = window.userMeta.mealsTemplate;
+      if(idx >= arr.length - 1) return;
+      [arr[idx+1], arr[idx]] = [arr[idx], arr[idx+1]];
+      await saveMealsTemplate();
+      renderMealsConfig();
+      renderMealButtons();
+    });
+  });
+
+  // listeners: excluir
+  mealsConfigList.querySelectorAll('button[data-act="del"]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = parseInt(btn.dataset.idx);
+      const arr = window.userMeta.mealsTemplate;
+      const m = arr[idx];
+      if(!m) return;
+      const items = currentDayData.meals?.[m.id] || [];
+      if(items.length > 0){
+        const ok = confirm(`A refeição "${m.label}" contém ${items.length} item(ns). Ao excluir, esses itens serão removidos do registro do dia atual (${registroDate.value}). Confirmar exclusão?`);
+        if(!ok) return;
+        // remove os itens do dia atual e salva a data
+        delete currentDayData.meals[m.id];
+        try {
+          if(currentUser) await setDoc(dayDoc(currentUser.uid, registroDate.value || dateToYMD(new Date())), currentDayData);
+        } catch(e){ console.warn('Falha ao salvar dia ao excluir refeição:', e); }
+        renderMealItems(); computeDaySummary();
+      }
+      arr.splice(idx, 1);
+      await saveMealsTemplate();
+      renderMealsConfig();
+      renderMealButtons();
+    });
+  });
+}
+
+// Gera um id "seguro" para nova refeição (normaliza o nome)
+function generateMealId(label){
+  let id = String(label||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'').replace(/[^a-z0-9_-]/g,'');
+  if(!id) id = 'meal_' + Date.now();
+  // garante unicidade
+  const exists = (window.userMeta.mealsTemplate||[]).some(m => m.id === id);
+  if(exists) id = id + '_' + Date.now();
+  return id;
+}
+
+// Salva template em metaDoc (merge)
+async function saveMealsTemplate(){
+  if(!currentUser){
+    // só atualiza local (se ainda não logado)
+    return;
+  }
+  try {
+    await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
+    // atualiza a variável in-memory se quiser forçar read
+    await loadMeta(); // recarrega userMeta e widgets (loadMeta já atualiza UI padrão)
+  } catch(e){
+    console.error('Erro salvando mealsTemplate:', e);
+  }
+}
+
+// Attach handlers aos botões da área de Registro (chamado sempre que renderMealButtons cria os botões)
+function attachMealButtonHandlers(){
+  document.querySelectorAll('.meal').forEach(b=>{
+    // remove listeners duplicados (proteção)
+    b.replaceWith(b.cloneNode(true));
+  });
+  document.querySelectorAll('.meal').forEach(b=>{
+    b.addEventListener('click', (ev)=>{
+      selectedMeal = ev.currentTarget.dataset.meal;
+      document.querySelectorAll('.meal').forEach(m=>m.classList.remove('active'));
+      ev.currentTarget.classList.add('active');
+      renderMealItems();
+    });
+  });
+}
+
+/* ====== Eventos de adicionar / salvar ====== */
+addMealBtn?.addEventListener('click', async ()=>{
+  const name = (newMealName.value || '').trim();
+  if(!name) return alert('Informe o nome da nova refeição.');
+  const id = generateMealId(name);
+  if(!window.userMeta) window.userMeta = {};
+  window.userMeta.mealsTemplate = window.userMeta.mealsTemplate || [];
+  window.userMeta.mealsTemplate.push({ id, label: name });
+  newMealName.value = '';
+  await saveMealsTemplate();
+  renderMealsConfig();
+  renderMealButtons();
+});
+
+if (saveMealsBtn) {
+  saveMealsBtn.onclick = async ()=>{
+    await saveMealsTemplate();
+    alert('Refeições salvas.');
+  };
+}
+
+/* ====== Inicialização: garantir template e renderizar ====== */
+(async function initMealsUI(){
+  try {
+    await ensureMealsTemplate();
+    renderMealButtons();
+    renderMealsConfig();
+  } catch(e){ console.warn('initMealsUI erro:', e); }
+})();
 
 
     // campos existentes
@@ -1797,132 +1987,6 @@ renderMealButtons();
   }
 }
 
-/* ===== Gerenciamento dinâmico de refeições (configuração no Meta) ===== */
-
-function slugifyLabel(s){
-  if(!s) return '';
-  return s.toString()
-          .toLowerCase()
-          .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // remove acentos
-          .replace(/[^a-z0-9]+/g,'') // remove espaços e símbolos
-          .replace(/^\d+/, 'm'); // evita chave começando com número
-}
-
-async function saveMealNamesToMeta(){
-  if(!currentUser) return;
-  try {
-    await setDoc(metaDoc(currentUser.uid), { mealNames }, { merge: true });
-    window.userMeta = window.userMeta || {};
-    window.userMeta.mealNames = mealNames;
-    console.log('mealNames salvos', mealNames);
-  } catch(e){
-    console.error('Erro salvando mealNames:', e);
-    alert('Erro salvando refeições: ' + (e.message||e));
-  }
-}
-
-function renderMealButtons(){
-  const container = document.getElementById('mealBtns');
-  if(!container) return;
-  container.innerHTML = '';
-  const keys = Object.keys(mealNames || {});
-  if(keys.length === 0) {
-    container.innerHTML = '<div class="small-muted">Nenhuma refeição configurada.</div>';
-    return;
-  }
-  keys.forEach(k=>{
-    const btn = document.createElement('button');
-    btn.className = 'chip meal';
-    btn.dataset.meal = k;
-    btn.textContent = mealNames[k] || k;
-    if(k === selectedMeal) btn.classList.add('active');
-    btn.addEventListener('click', (ev)=>{
-      selectedMeal = k;
-      document.querySelectorAll('.meal').forEach(m=>m.classList.remove('active'));
-      btn.classList.add('active');
-      renderMealItems();
-    });
-    container.appendChild(btn);
-  });
-}
-
-function renderMealsConfig(){
-  const list = document.getElementById('mealConfigList');
-  if(!list) return;
-  list.innerHTML = '';
-  Object.entries(mealNames).forEach(([key,label])=>{
-    const row = document.createElement('div');
-    row.className = 'meal-item';
-    row.innerHTML = `<input class="input meal-label" data-key="${key}" value="${label}"/><button class="chip btn-del" data-key="${key}">Excluir</button>`;
-    list.appendChild(row);
-
-    const input = row.querySelector('.meal-label');
-    const delBtn = row.querySelector('.btn-del');
-
-    input.addEventListener('change', async (e)=>{
-      const newLabel = (e.target.value||'').trim() || label;
-      mealNames[key] = newLabel;
-      await saveMealNamesToMeta();
-      renderMealButtons();
-      // atualiza preview/relatórios se necessário
-    });
-
-    delBtn.addEventListener('click', async ()=>{
-      if(!confirm(`Excluir a refeição "${label}"?`)) return;
-
-      const items = (currentDayData && currentDayData.meals && currentDayData.meals[key]) ? currentDayData.meals[key] : [];
-      if(items.length > 0){
-        // oferece mover para outra refeição ou apagar
-        const destLabel = prompt(`Esta refeição tem ${items.length} itens hoje. Digite o nome exato da refeição destino para MOVER os itens, ou deixe em branco para APAGAR os itens:`, '');
-        if(destLabel && destLabel.trim()){
-          // procurar destino por label (case-insensitive)
-          const destKey = Object.keys(mealNames).find(k2 => (mealNames[k2]||'').toLowerCase() === destLabel.trim().toLowerCase());
-          if(!destKey){
-            alert('Não encontrei refeição destino com esse nome. Operação cancelada.');
-            return;
-          }
-          currentDayData.meals[destKey] = (currentDayData.meals[destKey] || []).concat(items);
-        } else {
-          // apagar itens do dia atual
-          delete currentDayData.meals[key];
-        }
-        // salva o dia atual com as modificações
-        try { await salvarDiaAtual(); } catch(e){ console.warn('Não foi possível salvar dia após mover/excluir itens:', e); }
-      }
-
-      // remove a refeição da lista
-      delete mealNames[key];
-      await saveMealNamesToMeta();
-      renderMealsConfig();
-      renderMealButtons();
-    });
-  });
-}
-
-document.getElementById('addMealBtn')?.addEventListener('click', async ()=>{
-  const name = (document.getElementById('newMealName').value || '').trim();
-  if(!name) return alert('Informe um nome para a refeição.');
-  const key = slugifyLabel(name);
-  if(!key) return alert('Nome inválido.');
-  if(mealNames[key]) return alert('Já existe uma refeição com esse nome (ou similar). Tente outro nome.');
-  mealNames[key] = name;
-  currentDayData.meals = currentDayData.meals || {};
-  currentDayData.meals[key] = currentDayData.meals[key] || []; // cria array vazio
-  document.getElementById('newMealName').value = '';
-  await saveMealNamesToMeta();
-  renderMealsConfig();
-  renderMealButtons();
-  try { await salvarDiaAtual(); } catch(e){ console.warn('Falha ao salvar dia depois de adicionar refeição', e); }
-});
-
-/* Integrar com loadMeta() / loadDay() */
-(async function wireMealsOnInit(){
-  // quando o meta for carregado, loadMeta() já define window.userMeta
-  // Chamaremos essas renderizações logo após o loadMeta() ser executado:
-  // Para garantir, sobrescrevemos loadMeta para injetar a renderização imediatamente após carregar.
-})();
-
-
 /* Auditoria */
 function renderAudit(){
   auditTable.innerHTML = '';
@@ -1941,15 +2005,11 @@ document.querySelectorAll('.topnav .chip[data-page]').forEach(ch=>{
   ch.addEventListener('click', (ev)=> showPage(ev.target.dataset.page));
 });
 
-
-
-
-
 showPage('registro');
 
 
 /* === Export / Preview / PDF handlers === */
-let mealNames = {
+const mealNames = {
   cafedamanha: 'Café da manhã',
   lanchmanha: 'Lanche manhã',
   almoco: 'Almoço',
