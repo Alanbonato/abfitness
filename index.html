@@ -2140,7 +2140,7 @@ showPage('registro');
   border-radius: 6px;
   box-shadow: 0 0 10px rgba(0,0,0,0.15); /* opcional, deixa como no PDF da esquerda */
 }
-
+@page { size: A4; margin: 10mm; }
           .ab-preview .header-row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; }
           .ab-preview .header-row h2 { margin:0 0 4px 0; }
           .ab-preview .dados-box { border:1px solid #222; padding:10px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px; }
@@ -2273,45 +2273,59 @@ showPage('registro');
   }
 
   // função robusta para gerar PDF (clona o elemento, força width A4, inlines imagens e aplica html2pdf)
-  async function generatePdfFromElement(element){
-    const dateStr = registroDate ? (registroDate.value || new Date().toISOString().slice(0,10)) : new Date().toISOString().slice(0,10);
-    const opt = {
-      margin: 10,
-      filename: `relatorio_${dateStr}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, allowTaint: false, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'] }
-    };
+  // Substitua a sua função atual por esta versão:
+async function generatePdfFromElement(element){
+  const dateStr = registroDate ? (registroDate.value || new Date().toISOString().slice(0,10)) : new Date().toISOString().slice(0,10);
 
-    // clona para não alterar DOM atual e força largura A4 para html2canvas/jsPDF renderizarem corretamente
-    const clone = element.cloneNode(true);
-    clone.style.boxSizing = 'border-box';
-    clone.style.width = '210mm';
-    clone.style.background = '#fff';
+  // mesma opção, mas vamos usar o margin explicitamente em mm
+  const opt = {
+    margin: 10, // mm
+    filename: `relatorio_${dateStr}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, allowTaint: false, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
 
-    // encapsula em wrapper para evitar estilos da página atrapalharem
-    const wrapper = document.createElement('div');
-    wrapper.style.position = 'fixed';
-    wrapper.style.left = '0';
-    wrapper.style.top = '0';
-    wrapper.style.zIndex = '99999';
-    wrapper.style.visibility = 'hidden';
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
+  // calcula a largura imprimível (A4 width - 2*margem)
+  const pageWidthMm = 210; // A4 width em mm
+  const marginMm = (Array.isArray(opt.margin) ? (opt.margin[1] + opt.margin[3]) / 2 : opt.margin);
+  const printableWidthMm = Math.max(1, pageWidthMm - (marginMm * 2)); // ex: 190mm
 
-    try {
-      await inlineImages(clone);
-      if(typeof window.html2pdf === 'undefined'){
-        await loadScriptAsync('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
-      }
-      // gera e salva
-      await window.html2pdf().from(clone).set(opt).save();
-    } finally {
-      // garante remoção do wrapper (limpeza)
-      setTimeout(()=>{ try{ document.body.removeChild(wrapper); } catch(e){ /* ignore */ } }, 600);
+  // clona sem alterar o DOM original
+  const clone = element.cloneNode(true);
+  clone.style.boxSizing = 'border-box';
+  // define largura do clone para a área imprimível (não para 210mm)
+  clone.style.width = printableWidthMm + 'mm';
+  clone.style.maxWidth = printableWidthMm + 'mm';
+  clone.style.margin = '0'; // deixa html2pdf controlar as margens da página
+  clone.style.background = '#fff';
+  // opcional: remover sombras/bordas que podem afetar o encaixe
+  clone.style.boxShadow = 'none';
+  clone.style.borderRadius = '0';
+
+  // coloca off-screen (visível para html2canvas) — evita visibility:hidden
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  wrapper.style.left = '-9999px';
+  wrapper.style.top = '0';
+  wrapper.style.zIndex = '99999';
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  try {
+    await inlineImages(clone);
+    if(typeof window.html2pdf === 'undefined'){
+      await loadScriptAsync('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
     }
+    // gera e salva
+    await window.html2pdf().from(clone).set(opt).save();
+  } finally {
+    // limpeza
+    setTimeout(()=>{ try{ document.body.removeChild(wrapper); } catch(e){ /* ignore */ } }, 600);
   }
+}
+
 
   // evento do botão Gerar PDF
   if(btnPDF){
