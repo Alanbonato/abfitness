@@ -1023,7 +1023,30 @@ const bankCollection = (uid) => collection(db, uidPath(uid), 'bank');
 const dayDoc = (uid, dateStr) => doc(db, uidPath(uid), 'days', dateStr);
 const metaDoc = (uid) => doc(db, uidPath(uid), 'meta', 'settings');
 
-function dateToYMD(d){ return d.toISOString().slice(0,10); }
+// Formata YYYY-MM-DD no fuso 'America/Sao_Paulo' (fallback para local se Intl não suportado)
+function dateToYMD(d = new Date(), timeZone = 'America/Sao_Paulo') {
+  // tenta usar Intl com timeZone (mais confiável quando quer um fuso específico)
+  if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
+    try {
+      const parts = new Intl.DateTimeFormat('en', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+        .formatToParts(d);
+      const year  = parts.find(p => p.type === 'year').value;
+      const month = parts.find(p => p.type === 'month').value;
+      const day   = parts.find(p => p.type === 'day').value;
+      return `${year}-${month}-${day}`;
+    } catch(e){
+      // se falhar (browsers antigos), cai no fallback abaixo
+      console.warn('Intl.formatToParts falhou, usando fallback local:', e);
+    }
+  }
+  // Fallback: usa a data local do navegador (funciona se o usuário estiver no fuso desejado)
+  const local = new Date(d);
+  const yyyy = local.getFullYear();
+  const mm = String(local.getMonth() + 1).padStart(2, '0');
+  const dd = String(local.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function calcKcalFromMacros(p,c,f){ return Math.round((p*4)+(c*4)+(f*9)); }
 
 const pageMusculacao = document.getElementById('page-Musculação');
@@ -2277,7 +2300,8 @@ showPage('registro');
   // função robusta para gerar PDF (clona o elemento, força width A4, inlines imagens e aplica html2pdf)
   // Substitua a sua função atual por esta versão:
 async function generatePdfFromElement(element){
-  const dateStr = registroDate ? (registroDate.value || new Date().toISOString().slice(0,10)) : new Date().toISOString().slice(0,10);
+  const dateStr = registroDate ? (registroDate.value || dateToYMD(new Date())) : dateToYMD(new Date());
+
 
   // mesma opção, mas vamos usar o margin explicitamente em mm
   const opt = {
