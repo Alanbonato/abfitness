@@ -1862,8 +1862,9 @@ function renderMealsConfig(){
     row.style.gap = '8px';
     row.style.marginBottom = '8px';
     row.innerHTML = `
-      <input class="input meal-label" data-id="${m.id}" value="${m.label}" style="flex:1" />
-      <div style="display:flex;flex-direction:column;gap:6px">
+    <input class="input meal-label" data-id="${m.id}" value="${m.label}" style="flex:1" />
+
+      <div style="display:flex;gap:6px">
         <button class="chip btn-up" data-idx="${idx}" title="Subir">▲</button>
         <button class="chip btn-down" data-idx="${idx}" title="Descer">▼</button>
       </div>
