@@ -2067,71 +2067,115 @@ showPage('registro');
 
 
 /* === Export / Preview / PDF handlers === */
-const mealNames = {
-  cafedamanha: 'Café da manhã',
-  lanchmanha: 'Lanche manhã',
-  almoco: 'Almoço',
-  lanchetarde: 'Lanche tarde',
-  pretreino: 'Pré-treino',
-  postreino: 'Pós-treino',
-  jantar: 'Jantar'
-};
+/* === Bloco de Preview + PDF (cole aqui, substituindo qualquer código antigo de preview/pdf) === */
+(function(){
+  const btnPreview = document.getElementById('btnPreview');
+  const btnPDF     = document.getElementById('btnPDF');
+  const previewContainer = document.getElementById('previewContainer');
+  const registroDate = document.getElementById('registroDate');
 
-if (btnPreview) {
-  btnPreview.addEventListener('click', () => {
-    if (!currentUser) return alert('Faça login para gerar o preview.');
+  // carrega script dinamicamente
+  function loadScriptAsync(src){
+    return new Promise((resolve,reject)=>{
+      if(document.querySelector(`script[src="${src}"]`)) return resolve();
+      const s = document.createElement('script');
+      s.src = src; s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Falha ao carregar ' + src));
+      document.body.appendChild(s);
+    });
+  }
+
+  // tenta inline images (best-effort) para evitar problemas com html2pdf / CORS
+  async function inlineImages(container){
+    const imgs = Array.from(container.querySelectorAll('img'));
+    await Promise.all(imgs.map(img => new Promise((resolve) => {
+      const src = img.src || img.getAttribute('src');
+      if(!src || src.startsWith('data:')) return resolve();
+      const image = new Image();
+      image.crossOrigin = 'Anonymous';
+      image.onload = () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = image.naturalWidth;
+          c.height = image.naturalHeight;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(image,0,0);
+          const data = c.toDataURL('image/png');
+          img.src = data;
+        } catch(e){
+          console.warn('inlineImages: não foi possível inline (CORS?):', e);
+        }
+        resolve();
+      };
+      image.onerror = () => resolve();
+      image.src = src;
+      setTimeout(resolve, 2000); // timeout para não travar caso host bloqueie
+    })));
+  }
+
+  // monta o HTML do preview (usa a ordem das refeições em userMeta.mealsTemplate ou defaultMeals)
+  function buildPreviewHtml(){
     const meta = window.userMeta || {};
-    const day = currentDayData.meals || {};
+    const day = (currentDayData && currentDayData.meals) ? currentDayData.meals : {};
+    const mealsTemplate = (window.userMeta && Array.isArray(window.userMeta.mealsTemplate) && window.userMeta.mealsTemplate.length) ? window.userMeta.mealsTemplate : (typeof defaultMeals !== 'undefined' ? defaultMeals : []);
+    // captura estilos já presentes (link/style) para manter visual (fallback silencioso)
+    let styles = '';
+    try {
+      styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map(n => n.outerHTML).join('\n');
+    } catch(e){ styles = ''; }
 
-    // Começamos com um estilo interno específico para o preview:
+    // CSS inline específico para o preview/PDF (A4-friendly)
     let html = `
-      <div style="font-family:Arial,Helvetica,sans-serif;color:#000">
-        <style>
-          /* Container do preview (opcional: ajusta a largura final) */
-          .ab-preview { max-width: 800px; }
+      ${styles}
+      <div style="font-family: Arial, Helvetica, sans-serif; color:#000;">
+        <style>.ab-preview {
+  width: 210mm;
+  max-width: 100%;
+  margin: 0 auto;           /* centraliza horizontalmente */
+  background: #fff;
+  padding: 20px;
+  box-sizing: border-box;
+  color: #000;
+  border-radius: 6px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.15); /* opcional, deixa como no PDF da esquerda */
+}
 
-          /* Table layout fixo: garante que todas as tabelas tenham as mesmas larguras de coluna */
-          .ab-preview-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed; /* <--- importante */
-            font-size: 12px;
-          }
+          .ab-preview .header-row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; }
+          .ab-preview .header-row h2 { margin:0 0 4px 0; }
+          .ab-preview .dados-box { border:1px solid #222; padding:10px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px; }
+          .ab-preview-table { width:100%; border-collapse:collapse; font-size:12px; table-layout: fixed; }
+          .ab-preview-table th, .ab-preview-table td { border:1px solid #ddd; padding:6px; vertical-align:middle; }
+          .ab-preview-table th { background:#f6f6f6; text-align:left; }
+          .ab-preview-table td.numeric, .ab-preview-table th.numeric { text-align:center; white-space:nowrap; }
+          .ab-preview-table td:first-child { word-break:break-word; white-space:normal; }
+          thead { display: table-header-group; }
+          .ab-subtotal, .ab-total { margin-top:8px; font-weight:700; page-break-inside:avoid; }
+         .ab-preview img.logo { 
+  width:80px; 
+  height:80px; 
+  object-fit:contain; 
+  border-radius:8px; 
+  background:#fff;     /* força fundo branco */
+  padding:4px;         /* opcional, dá respiro para não cortar */
+  display:block;
+}
 
-          /* Cabeçalho e células */
-          .ab-preview-table th,
-          .ab-preview-table td {
-            border: 1px solid #ddd;
-            padding: 6px;
-            overflow: hidden;         /* evita que células cresçam por conteúdo longo */
-            text-overflow: ellipsis;  /* mostra "..." se o texto for maior que a largura */
-            white-space: nowrap;      /* evita quebra de linha dentro da célula */
-          }
-
-          /* Cabeçalho com fundo sutil */
-          .ab-preview-table th { background: #f6f6f6; text-align: left; }
-
-          /* Alinhar colunas numéricas ao centro */
-          .ab-preview-table td.numeric,
-          .ab-preview-table th.numeric { text-align: center; white-space: nowrap; }
-
-          /* Se quiser que o nome do alimento tenha quebra de linha em vez de cortar, remova white-space:nowrap acima e use: */
-          /* .ab-preview-table td:first-child { white-space: normal; } */
         </style>
 
         <div class="ab-preview">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="header-row">
             <div>
-              <h2 style="margin:0">Relatório Diário</h2>
+              <h2>Relatório Diário</h2>
               <div style="color:#444">Gerado por AB Nutri</div>
             </div>
             <div style="text-align:right">
-              <strong>${meta.nome || ''}</strong>
-              <div style="font-size:12px;color:#333">${meta.sexo || ''} • ${meta.idade || ''} anos</div>
+              <strong>${meta.nome || ''}</strong><br/>
+              <small style="color:#333">${meta.sexo || ''} ${meta.idade ? ('• ' + meta.idade + ' anos') : ''}</small>
             </div>
           </div>
 
-          <div style="border:1px solid #222;padding:10px;margin-bottom:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div class="dados-box">
             <div>
               <strong>Dados do Aluno</strong><br/>
               Nome: ${meta.nome || '-'}<br/>
@@ -2140,22 +2184,24 @@ if (btnPreview) {
               TMB: ${meta.tmb || 0} kcal • TDEE: ${meta.tdee || 0} kcal • BF: ${meta.bf || 0}%<br/>
               Objetivo: ${meta.objetivo || '-'}
             </div>
-            <img src="abnutri_logo.png" alt="Logo" style="width:80px;height:80px;object-fit:contain;border-radius:8px"/>
+            <img src="abnutri_logo.png" alt="Logo" class="logo"/>
           </div>
 
-          <div><strong>Registro de Refeições (${registroDate.value || ''})</strong></div>
+          <div><strong>Registro de Refeições (${registroDate ? registroDate.value : ''})</strong></div>
     `;
 
     let totalP = 0, totalC = 0, totalF = 0, totalK = 0;
 
-    // Percorre as refeições e gera as tabelas
-    for (const mealKey of Object.keys(mealNames)) {
-      const items = day[mealKey] || [];
-      if (items.length === 0) continue;
+    // percorre o template de refeições (ordem fixa conforme a UI Registro)
+    for(const meal of mealsTemplate){
+      const mealKey = meal.id;
+      const mealLabel = meal.label || meal.id;
+      const items = Array.isArray(day[mealKey]) ? day[mealKey] : [];
+      if(!items || items.length === 0) continue; // ignora refeições vazias
 
-      html += `<div style="margin-top:10px"><div style="font-weight:800;margin-bottom:6px">${mealNames[mealKey]}</div>`;
+      html += `<div style="margin-top:10px"><div style="font-weight:800;margin-bottom:6px">${mealLabel}</div>`;
 
-      // Aqui usamos colgroup para garantir colunas com largura fixa e iguais entre todas as tabelas
+      // garante colunas com larguras consistentes
       html += `
         <table class="ab-preview-table">
           <colgroup>
@@ -2181,64 +2227,110 @@ if (btnPreview) {
 
       let mealP = 0, mealC = 0, mealF = 0, mealK = 0;
       items.forEach(it => {
+        const prot = Number(it.prot || 0), carb = Number(it.carb || 0), fat = Number(it.fat || 0), kcal = Number(it.kcal || 0);
         html += `<tr>
-                  <td>${it.name}</td>
-                  <td class="numeric">${it.qty}</td>
-                  <td class="numeric">${it.prot.toFixed(1)}</td>
-                  <td class="numeric">${it.carb.toFixed(1)}</td>
-                  <td class="numeric">${it.fat.toFixed(1)}</td>
-                  <td class="numeric">${it.kcal}</td>
+                  <td>${(it.name || '').replace(/</g,'&lt;')}</td>
+                  <td class="numeric">${it.qty ?? ''}</td>
+                  <td class="numeric">${prot.toFixed(1)}</td>
+                  <td class="numeric">${carb.toFixed(1)}</td>
+                  <td class="numeric">${fat.toFixed(1)}</td>
+                  <td class="numeric">${kcal}</td>
                 </tr>`;
-        mealP += it.prot; mealC += it.carb; mealF += it.fat; mealK += it.kcal;
+        mealP += prot; mealC += carb; mealF += fat; mealK += kcal;
       });
 
       html += `</tbody></table>`;
-      html += `<div style="margin-top:6px;font-weight:700">Subtotal: Prot ${mealP.toFixed(1)} g • Carb ${mealC.toFixed(1)} g • Gord ${mealF.toFixed(1)} g • ${mealK} kcal</div>`;
+      html += `<div class="ab-subtotal">Subtotal: Prot ${mealP.toFixed(1)} g • Carb ${mealC.toFixed(1)} g • Gord ${mealF.toFixed(1)} g • ${mealK} kcal</div>`;
       html += `</div>`;
 
       totalP += mealP; totalC += mealC; totalF += mealF; totalK += mealK;
     }
 
-    html += `<div style="margin-top:14px;padding:10px;border-top:2px solid #222;font-weight:800">Total do dia: Prot ${totalP.toFixed(1)} g • Carb ${totalC.toFixed(1)} g • Gord ${totalF.toFixed(1)} g • ${totalK} kcal</div>`;
-    html += `</div>`; // fecha ab-preview e wrapper
+    // total do dia (aparece mesmo se total for zero)
+    html += `<div class="ab-total">Total do dia: Prot ${totalP.toFixed(1)} g • Carb ${totalC.toFixed(1)} g • Gord ${totalF.toFixed(1)} g • ${totalK} kcal</div>`;
 
-    previewContainer.innerHTML = html;
-    previewContainer.style.display = 'block';
-    previewContainer.scrollIntoView({ behavior: 'smooth' });
-  });
+    html += `</div></div>`; // fecha ab-preview + wrapper
+    return html;
+  }
 
+  // evento do botão Gerar Preview
+  if(btnPreview){
+    btnPreview.addEventListener('click', ()=>{
+      try {
+        // evita preview sem conteúdo
+        if(!currentUser) {
+          // se você não quer forçar login, comente essa linha. Removi essa checagem para permitir preview local:
+          // return alert('Faça login para gerar o preview.');
+        }
+        previewContainer.innerHTML = buildPreviewHtml();
+        previewContainer.style.display = 'block';
+        previewContainer.scrollIntoView({behavior:'smooth'});
+      } catch(e){
+        console.error('Erro ao gerar preview:', e);
+        alert('Erro ao gerar preview: ' + (e && e.message ? e.message : e));
+      }
+    });
+  }
 
-}
+  // função robusta para gerar PDF (clona o elemento, força width A4, inlines imagens e aplica html2pdf)
+  async function generatePdfFromElement(element){
+    const dateStr = registroDate ? (registroDate.value || new Date().toISOString().slice(0,10)) : new Date().toISOString().slice(0,10);
+    const opt = {
+      margin: 10,
+      filename: `relatorio_${dateStr}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, allowTaint: false, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
 
-if(btnPDF){
-  btnPDF.addEventListener('click', ()=>{
-    if(!previewContainer || !previewContainer.innerHTML.trim()) return alert('Gere o preview primeiro.');
-    // ensure html2pdf is available
-    if(typeof window.html2pdf === 'undefined'){
-      // try to load library dynamically
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-      s.onload = ()=> generatePdfFromElement(previewContainer);
-      s.onerror = ()=> alert('Não foi possível carregar a biblioteca de geração de PDF.');
-      document.body.appendChild(s);
-    } else {
-      generatePdfFromElement(previewContainer);
+    // clona para não alterar DOM atual e força largura A4 para html2canvas/jsPDF renderizarem corretamente
+    const clone = element.cloneNode(true);
+    clone.style.boxSizing = 'border-box';
+    clone.style.width = '210mm';
+    clone.style.background = '#fff';
+
+    // encapsula em wrapper para evitar estilos da página atrapalharem
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '0';
+    wrapper.style.top = '0';
+    wrapper.style.zIndex = '99999';
+    wrapper.style.visibility = 'hidden';
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    try {
+      await inlineImages(clone);
+      if(typeof window.html2pdf === 'undefined'){
+        await loadScriptAsync('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+      }
+      // gera e salva
+      await window.html2pdf().from(clone).set(opt).save();
+    } finally {
+      // garante remoção do wrapper (limpeza)
+      setTimeout(()=>{ try{ document.body.removeChild(wrapper); } catch(e){ /* ignore */ } }, 600);
     }
-  });
-}
+  }
 
-function generatePdfFromElement(element){
-  const opt = {
-    margin:       10,
-    filename:     `relatorio_${(registroDate.value||new Date().toISOString().slice(0,10))}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2 },
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-  try{
-    window.html2pdf().set(opt).from(element).save();
-  }catch(e){ console.error(e); alert('Erro ao gerar PDF: '+e.message); }
-}
+  // evento do botão Gerar PDF
+  if(btnPDF){
+    btnPDF.addEventListener('click', async ()=>{
+      try {
+        if(!previewContainer || !previewContainer.innerHTML.trim()){
+          // tenta gerar automaticamente o preview antes de criar PDF
+          previewContainer.innerHTML = buildPreviewHtml();
+          previewContainer.style.display = 'block';
+        }
+        previewContainer.style.display = 'block'; // garante visível para render correto
+        await generatePdfFromElement(previewContainer);
+      } catch(err){
+        console.error('Erro ao gerar PDF:', err);
+        alert('Erro ao gerar PDF: ' + (err && err.message ? err.message : err));
+      }
+    });
+  }
+})();
 
 
 // ==========================
