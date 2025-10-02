@@ -2300,7 +2300,7 @@ showPage('registro');
   // função robusta para gerar PDF (clona o elemento, força width A4, inlines imagens e aplica html2pdf)
   // Substitua a sua função atual por esta versão:
 async function generatePdfFromElement(element){
-  const dateStr = registroDate ? (registroDate.value || dateToYMD(new Date())) : dateToYMD(new Date());
+ const dateStr = registroDate ? (registroDate.value || dateToYMD(new Date())) : dateToYMD(new Date());
 
 
   // mesma opção, mas vamos usar o margin explicitamente em mm
