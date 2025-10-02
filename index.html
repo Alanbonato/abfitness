@@ -2301,6 +2301,11 @@ async function generatePdfFromElement(element){
   clone.style.maxWidth = printableWidthMm + 'mm';
   clone.style.margin = '0'; // deixa html2pdf controlar as margens da página
   clone.style.background = '#fff';
+  clone.style.marginTop = '0';
+  clone.style.paddingTop = '0';
+  clone.style.margin = '0';
+  clone.style.padding = '0';
+
   // opcional: remover sombras/bordas que podem afetar o encaixe
   clone.style.boxShadow = 'none';
   clone.style.borderRadius = '0';
