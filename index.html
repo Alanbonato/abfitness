@@ -705,10 +705,27 @@ ctx.restore();
               <div class="badge" id="sumCarb">Carboidrato<br><strong>0 g</strong></div>
               <div class="badge" id="sumFat">Gordura<br><strong>0 g</strong></div>
               <div class="badge" id="sumKcal">Calorias<br><strong>0 kcal</strong></div>
-<!-- 🔵 Novo badge dentro do mesmo flex -->
-  <div class="badge" id="sumFatLoss" style="background:#1e3a8a;color:#fff">
-    Gordura perdida<br><strong>0 g</strong>
+              <div class="badge" id="sumFatLoss" style="background:#1e3a8a;color:#fff">Gordura perdida<br><strong>0 g</strong></div>
+
+
+<!-- === INÍCIO: Seletor período gordura perdida (versão alinhada) === -->
+<div style="display:flex;align-items:center;gap:8px;margin-left:8px">
+  <!-- badge período no mesmo estilo -->
+  <div class="badge" id="sumFatPeriod" style="background:#0b0d0f;color:#fff">
+    Gordura perdida(Periodo)<br><strong>0 g</strong>
   </div>
+
+  <!-- inputs lado direito -->
+  <div style="display:flex;flex-direction:column;gap:4px">
+    <input id="periodStart" type="date" class="input" 
+           style="width:120px;background:#0b0d0f;color:#fff;padding:2px 4px;font-size:12px" />
+    <input id="periodEnd"   type="date" class="input" 
+           style="width:120px;background:#0b0d0f;color:#fff;padding:2px 4px;font-size:12px" />
+  </div>
+</div>
+<!-- === FIM: Seletor período gordura perdida (versão alinhada) === -->
+
+
 </div>
             </div>
           </div>
@@ -1660,12 +1677,14 @@ const tdee = window.userMeta?.tdee || 0;
 let deficit = tdee - k; // diferença entre TDEE e calorias ingeridas
 let fatLossGrams = 0;
 if (deficit > 0) {
-  fatLossGrams = (deficit / 7).toFixed(1);
+  fatLossGrams = (deficit / 7.7).toFixed(1);
 }
 const fatLossEl = document.getElementById('sumFatLoss');
 if (fatLossEl) {
   fatLossEl.innerHTML = 'Gordura perdida<br><strong>' + fatLossGrams + ' g</strong>';
 }
+// salvar no objeto atual para que, ao salvar o dia, fique persistido
+try { if (typeof currentDayData === 'object') currentDayData.fatLossGrams = Number(fatLossGrams); } catch(e){}
 
 
 
@@ -1717,6 +1736,86 @@ if (fatLossEl) {
 
   }
 }
+
+/* === INÍCIO: Cálculo de gordura perdida por período === */
+/* Requer: currentUser, dayDoc(), getDoc(), dateToYMD(), window.userMeta */
+const periodStartEl = document.getElementById('periodStart');
+const periodEndEl   = document.getElementById('periodEnd');
+const sumFatPeriodEl = document.getElementById('sumFatPeriod');
+
+if(periodStartEl && periodEndEl){
+  // inicializa com a data do registro atual para conveniência
+  periodStartEl.value = registroDate.value || dateToYMD(new Date());
+  periodEndEl.value   = registroDate.value || dateToYMD(new Date());
+
+  // recalc quando usuário altera qualquer input
+  periodStartEl.addEventListener('change', computeFatLossPeriod);
+  periodEndEl.addEventListener('change', computeFatLossPeriod);
+
+  // chama inicialmente para exibir valor assim que a tela carregar
+  computeFatLossPeriod().catch(e => console.warn('erro compute initial period', e));
+}
+
+async function computeFatLossPeriod(){
+  if(!currentUser) return;
+  const sVal = periodStartEl.value;
+  const eVal = periodEndEl.value;
+  if(!sVal || !eVal){
+    if(sumFatPeriodEl) sumFatPeriodEl.innerHTML = 'Gordura perdida por período<br><strong>0 g</strong>';
+    return;
+  }
+
+  // garante start <= end
+  let start = sVal, end = eVal;
+  if(start > end){ const tmp = start; start = end; end = tmp; }
+
+  // cria lista de YYYY-MM-DD entre start..end (inclusive)
+  const dates = [];
+  const sd = new Date(start + 'T00:00:00');
+  const ed = new Date(end + 'T00:00:00');
+  for(let d = new Date(sd); d <= ed; d.setDate(d.getDate() + 1)){
+    dates.push(dateToYMD(new Date(d)));
+  }
+
+  let totalFatLoss = 0;
+  for(const dstr of dates){
+    try {
+      const docSnap = await getDoc(dayDoc(currentUser.uid, dstr));
+      if(!docSnap.exists()) continue;
+      const dayData = docSnap.data() || {};
+
+      // tenta usar valor salvo (se existir)
+      if(dayData.fatLossGrams !== undefined && dayData.fatLossGrams !== null){
+        const v = parseFloat(dayData.fatLossGrams) || 0;
+        totalFatLoss += v;
+        continue;
+      }
+
+      // senão calcula a partir das refeições salvas (mesma lógica do computeDaySummary)
+      let k = 0;
+      if(dayData.meals){
+        for(const mealName in dayData.meals){
+          for(const it of (dayData.meals[mealName] || [])){
+            k += Number(it.kcal) || 0;
+          }
+        }
+      }
+
+      const tdee = window.userMeta?.tdee || 0;
+      const deficit = tdee - k;
+      if(deficit > 0){
+        totalFatLoss += (deficit / 7.7);
+      }
+    } catch(err){
+      console.warn('Erro ao carregar dia', dstr, err);
+    }
+  }
+
+  const rounded = Number(totalFatLoss).toFixed(1);
+  if(sumFatPeriodEl) sumFatPeriodEl.innerHTML = 'Gordura perdida por período<br><strong>' + rounded + ' g</strong>';
+}
+/* === FIM: Cálculo de gordura perdida por período === */
+
 
 /* Meta logic */
 let windowMetaLoaded = false;
