@@ -2396,13 +2396,11 @@ showPage('registro');
     });
   }
 
-  // função robusta para gerar PDF (clona o elemento, força width A4, inlines imagens e aplica html2pdf)
-  // Substitua a sua função atual por esta versão:
+  
+// ==== Substitua pela versão robusta abaixo ====
 async function generatePdfFromElement(element){
- const dateStr = registroDate ? (registroDate.value || dateToYMD(new Date())) : dateToYMD(new Date());
+  const dateStr = registroDate ? (registroDate.value || dateToYMD(new Date())) : dateToYMD(new Date());
 
-
-  // mesma opção, mas vamos usar o margin explicitamente em mm
   const opt = {
     margin: 10, // mm
     filename: `relatorio_${dateStr}.pdf`,
@@ -2412,49 +2410,73 @@ async function generatePdfFromElement(element){
     pagebreak: { mode: ['css', 'legacy'] }
   };
 
-  // calcula a largura imprimível (A4 width - 2*margem)
-  const pageWidthMm = 210; // A4 width em mm
+  // calcula largura imprimível em mm e converte para px medindo no DOM
+  const pageWidthMm = 210; // A4 width
   const marginMm = (Array.isArray(opt.margin) ? (opt.margin[1] + opt.margin[3]) / 2 : opt.margin);
-  const printableWidthMm = Math.max(1, pageWidthMm - (marginMm * 2)); // ex: 190mm
+  const printableWidthMm = Math.max(1, pageWidthMm - (marginMm * 2)); // ex: ~190mm
+
+  // Usa elemento temporário para obter a largura em pixels correspondente a 'printableWidthMm'
+  const tester = document.createElement('div');
+  tester.style.position = 'absolute';
+  tester.style.left = '-99999px';
+  tester.style.width = printableWidthMm + 'mm';
+  document.body.appendChild(tester);
+  const printableWidthPx = Math.round(tester.getBoundingClientRect().width);
+  document.body.removeChild(tester);
 
   // clona sem alterar o DOM original
   const clone = element.cloneNode(true);
   clone.style.boxSizing = 'border-box';
-  // define largura do clone para a área imprimível (não para 210mm)
-  clone.style.width = printableWidthMm + 'mm';
-  clone.style.maxWidth = printableWidthMm + 'mm';
-  clone.style.margin = '0'; // deixa html2pdf controlar as margens da página
-  clone.style.background = '#fff';
-  clone.style.marginTop = '0';
-  clone.style.paddingTop = '0';
+  // força largura em pixels calculados (mais confiável que deixar em mm diretamente)
+  clone.style.width = printableWidthPx + 'px';
+  clone.style.maxWidth = printableWidthPx + 'px';
   clone.style.margin = '0';
   clone.style.padding = '0';
-
-  // opcional: remover sombras/bordas que podem afetar o encaixe
+  clone.style.background = '#fff';
   clone.style.boxShadow = 'none';
   clone.style.borderRadius = '0';
 
-  // coloca off-screen (visível para html2canvas) — evita visibility:hidden
+  // cria wrapper fixo na viewport, visível mas transparente (html2canvas precisa que o elemento seja "renderable")
   const wrapper = document.createElement('div');
-  wrapper.style.position = 'absolute';
-  wrapper.style.left = '-9999px';
-  wrapper.style.top = '0';
-  wrapper.style.zIndex = '99999';
+  Object.assign(wrapper.style, {
+    position: 'fixed',
+    left: '0px',
+    top: '0px',
+    width: printableWidthPx + 'px',
+    overflow: 'visible',
+    zIndex: 2147483647,
+    opacity: '0',          // invisível ao usuário, mas renderizável
+    pointerEvents: 'none',
+    background: 'transparent'
+  });
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
   try {
-    await inlineImages(clone);
-    if(typeof window.html2pdf === 'undefined'){
+    // Inline imagens (função já presente no seu arquivo)
+    if (typeof inlineImages === 'function') {
+      await inlineImages(clone);
+    }
+
+    // Aguarda fonts carregarem (melhora fidelidade)
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch(e){ /* ignore */ }
+    }
+
+    // carrega html2pdf se necessário
+    if (typeof window.html2pdf === 'undefined') {
       await loadScriptAsync('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
     }
-    // gera e salva
-    await window.html2pdf().from(clone).set(opt).save();
+
+    // gera PDF
+    await window.html2pdf().set(opt).from(clone).save();
   } finally {
-    // limpeza
-    setTimeout(()=>{ try{ document.body.removeChild(wrapper); } catch(e){ /* ignore */ } }, 600);
+    // limpeza (remove wrapper um pouco depois pra não interferir visualmente)
+    setTimeout(()=>{ try{ document.body.removeChild(wrapper); } catch(e){} }, 300);
   }
 }
+// ==== fim da função substituta ====
+
 
 
   // evento do botão Gerar PDF
