@@ -705,14 +705,14 @@ ctx.restore();
               <div class="badge" id="sumCarb">Carboidrato<br><strong>0 g</strong></div>
               <div class="badge" id="sumFat">Gordura<br><strong>0 g</strong></div>
               <div class="badge" id="sumKcal">Calorias<br><strong>0 kcal</strong></div>
-              <div class="badge" id="sumFatLoss" style="background:#1e3a8a;color:#fff">Gordura perdida<br><strong>0 g</strong></div>
+              <div class="badge" id="sumFatLoss" style="background:#1e3a8a;color:#fff"> Gordura(Dia)<br><strong>0 g</strong></div>
 
 
 <!-- === INÍCIO: Seletor período gordura perdida (versão alinhada) === -->
 <div style="display:flex;align-items:center;gap:8px;margin-left:8px">
   <!-- badge período no mesmo estilo -->
   <div class="badge" id="sumFatPeriod" style="background:#0b0d0f;color:#fff">
-    Gordura perdida(Periodo)<br><strong>0 g</strong>
+    Queima(Periodo)<br><strong>0 g</strong>
   </div>
 
   <!-- inputs lado direito -->
@@ -1681,7 +1681,7 @@ if (deficit > 0) {
 }
 const fatLossEl = document.getElementById('sumFatLoss');
 if (fatLossEl) {
-  fatLossEl.innerHTML = 'Gordura perdida<br><strong>' + fatLossGrams + ' g</strong>';
+  fatLossEl.innerHTML = 'Queima(dia)<br><strong>' + fatLossGrams + ' g</strong>';
 }
 // salvar no objeto atual para que, ao salvar o dia, fique persistido
 try { if (typeof currentDayData === 'object') currentDayData.fatLossGrams = Number(fatLossGrams); } catch(e){}
@@ -1812,7 +1812,7 @@ async function computeFatLossPeriod(){
   }
 
   const rounded = Number(totalFatLoss).toFixed(1);
-  if(sumFatPeriodEl) sumFatPeriodEl.innerHTML = 'Gordura perdida por período<br><strong>' + rounded + ' g</strong>';
+  if(sumFatPeriodEl) sumFatPeriodEl.innerHTML = 'Queima(Período)<br><strong>' + rounded + ' g</strong>';
 }
 /* === FIM: Cálculo de gordura perdida por período === */
 
