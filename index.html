@@ -2397,85 +2397,57 @@ showPage('registro');
   }
 
   
-// ==== Substitua pela versão robusta abaixo ====
-async function generatePdfFromElement(element){
-  const dateStr = registroDate ? (registroDate.value || dateToYMD(new Date())) : dateToYMD(new Date());
+async function generatePdfFromElement(element) {
+  const dateStr = registroDate?.value || dateToYMD(new Date());
 
   const opt = {
-    margin: 10, // mm
+    margin: 10,
     filename: `relatorio_${dateStr}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, allowTaint: false, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: { mode: ['css', 'legacy'] }
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
-  // calcula largura imprimível em mm e converte para px medindo no DOM
-  const pageWidthMm = 210; // A4 width
-  const marginMm = (Array.isArray(opt.margin) ? (opt.margin[1] + opt.margin[3]) / 2 : opt.margin);
-  const printableWidthMm = Math.max(1, pageWidthMm - (marginMm * 2)); // ex: ~190mm
+  // aguarda fontes e imagens
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  await Promise.all(
+    Array.from(document.images).filter(img => !img.complete).map(img =>
+      new Promise(res => { img.onload = img.onerror = res; })
+    )
+  );
 
-  // Usa elemento temporário para obter a largura em pixels correspondente a 'printableWidthMm'
+  // calcula largura A4 útil em px
   const tester = document.createElement('div');
-  tester.style.position = 'absolute';
-  tester.style.left = '-99999px';
-  tester.style.width = printableWidthMm + 'mm';
+  tester.style.width = '190mm';
   document.body.appendChild(tester);
-  const printableWidthPx = Math.round(tester.getBoundingClientRect().width);
+  const printableWidthPx = tester.getBoundingClientRect().width;
   document.body.removeChild(tester);
 
-  // clona sem alterar o DOM original
+  // clona e prepara
   const clone = element.cloneNode(true);
-  clone.style.boxSizing = 'border-box';
-  // força largura em pixels calculados (mais confiável que deixar em mm diretamente)
   clone.style.width = printableWidthPx + 'px';
   clone.style.maxWidth = printableWidthPx + 'px';
-  clone.style.margin = '0';
-  clone.style.padding = '0';
-  clone.style.background = '#fff';
-  clone.style.boxShadow = 'none';
-  clone.style.borderRadius = '0';
+  clone.querySelectorAll('*').forEach(el=>{
+    el.style.transition = 'none';
+    el.style.animation = 'none';
+  });
 
-  // cria wrapper fixo na viewport, visível mas transparente (html2canvas precisa que o elemento seja "renderable")
   const wrapper = document.createElement('div');
   Object.assign(wrapper.style, {
-    position: 'fixed',
-    left: '0px',
-    top: '0px',
-    width: printableWidthPx + 'px',
-    overflow: 'visible',
-    zIndex: 2147483647,
-    opacity: '0',          // invisível ao usuário, mas renderizável
-    pointerEvents: 'none',
-    background: 'transparent'
+    position:'fixed', left:'0', top:'0', opacity:'0', zIndex:999999
   });
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
   try {
-    // Inline imagens (função já presente no seu arquivo)
-    if (typeof inlineImages === 'function') {
-      await inlineImages(clone);
-    }
-
-    // Aguarda fonts carregarem (melhora fidelidade)
-    if (document.fonts && document.fonts.ready) {
-      try { await document.fonts.ready; } catch(e){ /* ignore */ }
-    }
-
-    // carrega html2pdf se necessário
     if (typeof window.html2pdf === 'undefined') {
       await loadScriptAsync('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
     }
-
-    // gera PDF
     await window.html2pdf().set(opt).from(clone).save();
   } finally {
-    // limpeza (remove wrapper um pouco depois pra não interferir visualmente)
-    setTimeout(()=>{ try{ document.body.removeChild(wrapper); } catch(e){} }, 300);
+    wrapper.remove();
   }
 }
-// ==== fim da função substituta ====
 
 
 
