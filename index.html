@@ -1,9 +1,24 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>AB Nutri — Starter</title>
+  <meta charset="utf-8" />
+  
+  <!-- viewport atualizado para ocupar a tela toda no iPhone -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  
+  <title>AB Nutri</title>
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Configurações PWA iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AB Nutri">
+  <meta name="theme-color" content="#0d0f12">
+
+  <!-- Ícone iOS -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
 <!-- Ícones iOS (Apple Touch) -->
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
@@ -2980,6 +2995,16 @@ window.addEventListener('resize', adjustMusculacaoIframe);
       </div>
     </div>
   </div>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js")
+    .then(() => console.log("✅ Service Worker registrado"))
+    .catch(err => console.error("❌ Erro no Service Worker:", err));
+}
+</script>
+
+
 </body>
 
 </html>
