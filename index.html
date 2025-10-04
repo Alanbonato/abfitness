@@ -2979,6 +2979,13 @@ window.addEventListener('resize', adjustMusculacaoIframe);
 */
 </script>
 
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js")
+    .then(() => console.log("✅ Service Worker registrado"))
+    .catch(err => console.error("❌ Erro no Service Worker:", err));
+}
+</script>
 
 
   <!-- Modal de correção -->
@@ -2996,13 +3003,7 @@ window.addEventListener('resize', adjustMusculacaoIframe);
     </div>
   </div>
 
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js")
-    .then(() => console.log("✅ Service Worker registrado"))
-    .catch(err => console.error("❌ Erro no Service Worker:", err));
-}
-</script>
+
 
 
 </body>
