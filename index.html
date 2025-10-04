@@ -751,22 +751,21 @@ ctx.restore();
               <div class="badge" id="sumFatLoss" style="background:#1e3a8a;color:#fff"> Gordura(Dia)<br><strong>0 g</strong></div>
 
 
-<!-- === INÍCIO: Seletor período gordura perdida === -->
-<div id="fatPeriodContainer" style="display:flex;align-items:center;gap:8px;margin-left:8px">
+<!-- === INÍCIO: Seletor período gordura perdida (corrigido) === -->
+<div id="fatPeriodContainer" class="fat-period-container" style="display:flex;align-items:center;gap:8px;margin-left:8px">
   <!-- badge período -->
   <div class="badge" id="sumFatPeriod" style="background:#0b0d0f;color:#fff">
-    Queima(Periodo)<br><strong>0 g</strong>
+    Queima(Periodo)<br><strong id="sumFatPeriodValue">0 g</strong>
   </div>
 
-  <!-- inputs lado direito -->
-  <div style="display:flex;flex-direction:column;gap:4px">
-    <input id="periodStart" type="date" class="input"
-           style="width:120px;background:#0b0d0f;color:#fff;padding:2px 4px;font-size:12px" />
-    <input id="periodEnd" type="date" class="input"
-           style="width:120px;background:#0b0d0f;color:#fff;padding:2px 4px;font-size:12px" />
+  <!-- inputs (removi larguras inline para podermos controlar via CSS/JS) -->
+  <div class="fat-period-inputs" style="display:flex;flex-direction:column;gap:4px">
+    <input id="periodStart" type="date" class="input period-input" />
+    <input id="periodEnd"   type="date" class="input period-input" />
   </div>
 </div>
 <!-- === FIM: Seletor período gordura perdida === -->
+
 
 
 
