@@ -358,28 +358,6 @@ html, body {
 }
 
 
-/* Ajusta layout do "Queima(Periodo)" só em telas pequenas */
-@media (max-width: 480px) {
-  #sumFatPeriod {
-    margin-bottom: 6px; /* espaço entre o badge e os inputs */
-    width: 100%;        /* ocupa largura toda */
-    text-align: center; /* centraliza o texto */
-  }
-
-  /* container dos inputs */
-  #periodStart, #periodEnd {
-    width: 100% !important;  /* inputs ocupam largura total no mobile */
-    font-size: 14px !important;
-  }
-
-  /* força o bloco inteiro (badge + inputs) em coluna */
-  #sumFatPeriod, #periodStart, #periodEnd {
-    display: block;
-  }
-}
-
-
-
 .water-congrats-message {
   pointer-events: auto;
   background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
@@ -421,6 +399,31 @@ html, body {
   transition: opacity 720ms ease, transform 720ms ease;
 }
 
+/* Ajusta layout do bloco "Queima(Periodo)" em telas pequenas */
+@media (max-width: 480px) {
+  /* o container externo vira coluna */
+  #fatPeriodContainer {
+    display: flex;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  /* badge ocupa linha inteira */
+  #sumFatPeriod {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* inputs ficam empilhados e ocupam 100% */
+  #periodStart,
+  #periodEnd {
+    width: 100% !important;
+    font-size: 14px !important;
+  }
+}
 
 
 
@@ -748,22 +751,23 @@ ctx.restore();
               <div class="badge" id="sumFatLoss" style="background:#1e3a8a;color:#fff"> Gordura(Dia)<br><strong>0 g</strong></div>
 
 
-<!-- === INÍCIO: Seletor período gordura perdida (versão alinhada) === -->
-<div style="display:flex;align-items:center;gap:8px;margin-left:8px">
-  <!-- badge período no mesmo estilo -->
+<!-- === INÍCIO: Seletor período gordura perdida === -->
+<div id="fatPeriodContainer" style="display:flex;align-items:center;gap:8px;margin-left:8px">
+  <!-- badge período -->
   <div class="badge" id="sumFatPeriod" style="background:#0b0d0f;color:#fff">
     Queima(Periodo)<br><strong>0 g</strong>
   </div>
 
   <!-- inputs lado direito -->
   <div style="display:flex;flex-direction:column;gap:4px">
-    <input id="periodStart" type="date" class="input" 
+    <input id="periodStart" type="date" class="input"
            style="width:120px;background:#0b0d0f;color:#fff;padding:2px 4px;font-size:12px" />
-    <input id="periodEnd"   type="date" class="input" 
+    <input id="periodEnd" type="date" class="input"
            style="width:120px;background:#0b0d0f;color:#fff;padding:2px 4px;font-size:12px" />
   </div>
 </div>
-<!-- === FIM: Seletor período gordura perdida (versão alinhada) === -->
+<!-- === FIM: Seletor período gordura perdida === -->
+
 
 
 </div>
