@@ -13,7 +13,8 @@
 
   <!-- Configurações PWA iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
 
   <meta name="apple-mobile-web-app-title" content="AB Nutri">
   <meta name="theme-color" content="#0d0f12">
@@ -355,6 +356,29 @@ html, body {
   z-index: 2147483000; /* muito alto para garantir sobreposição */
   pointer-events: none; /* deixa interação na página (apenas se quiser bloquear, mude para auto) */
 }
+
+
+/* Ajusta layout do "Queima(Periodo)" só em telas pequenas */
+@media (max-width: 480px) {
+  #sumFatPeriod {
+    margin-bottom: 6px; /* espaço entre o badge e os inputs */
+    width: 100%;        /* ocupa largura toda */
+    text-align: center; /* centraliza o texto */
+  }
+
+  /* container dos inputs */
+  #periodStart, #periodEnd {
+    width: 100% !important;  /* inputs ocupam largura total no mobile */
+    font-size: 14px !important;
+  }
+
+  /* força o bloco inteiro (badge + inputs) em coluna */
+  #sumFatPeriod, #periodStart, #periodEnd {
+    display: block;
+  }
+}
+
+
 
 .water-congrats-message {
   pointer-events: auto;
