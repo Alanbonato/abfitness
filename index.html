@@ -2945,7 +2945,6 @@ async function iniciarLembreteAgua(){
     console.warn('Erro limpando timer antigo:', e);
   }
 
-  // pega o intervalo (minutos) da meta (garante número)
   const intervalo = parseInt(window.userMeta?.metaAguaIntervalo, 10) || 0;
   if (intervalo <= 0) {
     console.log('Lembrete de água: intervalo inválido ou zero, nenhum timer agendado.');
@@ -2965,6 +2964,20 @@ async function iniciarLembreteAgua(){
     console.warn('Notificações não suportadas neste navegador');
   }
 
+  // === prepara o som (usa window.userMeta.metaAguaSound se existir, senão water.mp3) ===
+  const soundFile = (window.userMeta && window.userMeta.metaAguaSound) ? window.userMeta.metaAguaSound : 'water.mp3';
+  try {
+    if (!window._aguaAudio || window._aguaAudio.src !== soundFile) {
+      window._aguaAudio = new Audio(soundFile);
+      window._aguaAudio.preload = 'auto';
+      window._aguaAudio.volume = 0.9;
+      try { window._aguaAudio.load(); } catch(e){ /* ignora */ }
+    }
+  } catch(e){
+    console.warn('Falha ao criar objeto de áudio:', e);
+    window._aguaAudio = null;
+  }
+
   // cria novo timer e guarda o id globalmente
   window._aguaIntervalId = setInterval(()=>{
     try {
@@ -2975,10 +2988,15 @@ async function iniciarLembreteAgua(){
         showInAppWaterToast('Hora de beber um copo de água 💧');
       }
 
-      // tenta tocar som (adicione beep.mp3 na raiz do projeto) — senão vibra (mobile)
+      // tenta tocar som — se der erro, vibra (mobile)
       try {
-        const audio = new Audio("beep.mp3");
-        audio.play().catch(()=>{ if(navigator.vibrate) navigator.vibrate(250); });
+        if (window._aguaAudio) {
+          try { window._aguaAudio.currentTime = 0; } catch(e){}
+          window._aguaAudio.play().catch(()=>{ if(navigator.vibrate) navigator.vibrate(250); });
+        } else {
+          const a = new Audio(soundFile);
+          a.play().catch(()=>{ if(navigator.vibrate) navigator.vibrate(250); });
+        }
       } catch(e){
         if(navigator.vibrate) navigator.vibrate(250);
       }
@@ -2989,6 +3007,7 @@ async function iniciarLembreteAgua(){
 
   console.log('Lembrete de água iniciado. Intervalo (min):', intervalo, 'intervalId:', window._aguaIntervalId);
 }
+
 
 const metaAguaIntervaloEl = document.getElementById('metaAguaIntervalo');
 metaAguaIntervaloEl?.addEventListener('change', (e)=>{
