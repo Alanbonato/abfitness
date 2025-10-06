@@ -425,6 +425,98 @@ html, body {
   }
 }
 
+button.secondary {
+  background: transparent;
+  color: #007bff;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 8px;
+}
+button.secondary:hover {
+  color: #0056b3;
+}
+
+
+/* layout do login: social providers + card lado a lado */
+.login-layout{
+  display:flex;
+  gap:28px;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  padding: 24px;
+}
+
+/* container dos botões sociais (fora do cartão) */
+.social-providers{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  min-width:220px; /* controla a largura dos botões sociais */
+}
+
+/* estilo genérico do botão social (visual parecido com o screenshot) */
+.social-btn{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 18px;
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,0.08);
+  background:#fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  font-weight:600;
+  cursor:pointer;
+  text-align:left;
+  white-space:nowrap;
+}
+
+/* ícone dentro do botão */
+.social-btn svg{ width:20px; height:20px; flex-shrink:0; }
+
+/* variações de marca (cores sutis no texto ou borda) */
+.social-btn.google{ color:#202124; }
+.social-btn.facebook{ color:#1877F2; }
+.social-btn.apple{ color:#000; }
+
+/* hover/focus */
+.social-btn:hover, .social-btn:focus{
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* cartão de login: manter estética existente */
+.login-card{
+  min-width:280px;
+  max-width:380px;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+/* botão secundário (esqueci) */
+button.secondary{
+  background:transparent;
+  border:none;
+  color:#007bff;
+  text-decoration:underline;
+  margin-top:8px;
+}
+
+/* responsivo: empilha no celular */
+@media (max-width:720px){
+  .login-layout{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .social-providers{
+    flex-direction:row;
+    justify-content:center;
+    gap:10px;
+    width:100%;
+  }
+  .social-btn{ flex:1; justify-content:center; white-space:normal; }
+}
 
 
 </style>
@@ -627,10 +719,24 @@ ctx.restore();
       <div style="display:flex;gap:10px;margin-top:8px">
         <button id="loginBtn" class="btn">Entrar</button>
         <button id="registerBtn" class="btn ghost">Cadastrar</button>
-      </div>
+
+<button id="forgotPassBtn" class="secondary">Esqueci minha senha</button>        
+</div>
       <div class="footer-note">Se ainda não tem conta, clique em Cadastrar. </div>
     </div>
     <div class="small-muted">“Uma forma simples e prática de cuidar da sua saúde todos os dias.”</div>
+   <!-- ===== social providers (fora do quadrado) ===== -->
+    <div id="socialProviders" class="social-providers" aria-hidden="false">
+      <button id="googleLoginBtn" class="social-btn google" aria-label="Entrar com Google">
+        <!-- SVG Google (simples) -->
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="#EA4335" d="M..."></path> <!-- subtituir por SVG real (ex.: caminho google) -->
+        </svg>
+        Continuar com Google
+      </button>
+    </div>
+
+
   </section>
 
   <!-- Main container -->
@@ -978,7 +1084,21 @@ ctx.restore();
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
+  OAuthProvider,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1005,6 +1125,63 @@ const registerBtn = document.getElementById('registerBtn');
 const emailIn = document.getElementById('email');
 const passIn = document.getElementById('password');
 const logoutBtn = document.getElementById('logoutBtn');
+/* === INÍCIO: Social login (cole AQUI, logo após `const logoutBtn = ...`) === */
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+const facebookLoginBtn = document.getElementById('facebookLoginBtn');
+const appleLoginBtn = document.getElementById('appleLoginBtn');
+
+// providers
+const googleProvider = new GoogleAuthProvider();
+const fbProvider = new FacebookAuthProvider();
+const appleProvider = new OAuthProvider('apple.com');
+
+// scopes / ajustes opcionais
+fbProvider.addScope('email');
+
+// handlers
+googleLoginBtn?.addEventListener('click', async () => {
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (e) {
+    console.error('Google sign-in error', e);
+    // fallback para redirect caso popup seja bloqueado
+    try { await signInWithRedirect(auth, googleProvider); } catch(err){ console.error('redirect fail', err); alert(err.message || err); }
+  }
+});
+
+facebookLoginBtn?.addEventListener('click', async () => {
+  try {
+    await signInWithPopup(auth, fbProvider);
+  } catch (e) {
+    console.error('Facebook sign-in error', e);
+    try { await signInWithRedirect(auth, fbProvider); } catch(err){ console.error(err); alert(err.message || err); }
+  }
+});
+
+appleLoginBtn?.addEventListener('click', async () => {
+  try {
+    // Apple frequentemente exige configuração extra; tentamos popup e caímos no redirect
+    await signInWithPopup(auth, appleProvider);
+  } catch(e) {
+    console.error('Apple sign-in error', e);
+    try { await signInWithRedirect(auth, appleProvider); } catch(err){ console.error(err); alert(err.message || err); }
+  }
+});
+
+// opcional: processar resultado de redirect (se o usuário veio por redirect)
+(async function handleRedirectResult(){
+  try {
+    const result = await getRedirectResult(auth);
+    if(result && result.user){
+      console.log('Redirect login OK', result.user);
+      // onAuthStateChanged já tratará a navegação para a tela principal
+    }
+  } catch(err){
+    console.warn('getRedirectResult erro', err);
+  }
+})();
+/* === FIM: Social login === */
+
 
 const pageRegistro = document.getElementById('page-registro');
 const pageBanco = document.getElementById('page-banco');
@@ -1137,6 +1314,24 @@ registerBtn.addEventListener('click', async ()=>{
   try{ await createUserWithEmailAndPassword(auth, email, pass); alert('Conta criada.'); }
   catch(e){ console.error(e); alert(e.message); }
 });
+
+// Recuperação de senha
+forgotPassBtn.addEventListener('click', async ()=>{
+  const email = emailIn.value.trim();
+  if(!email){ 
+    alert('Por favor, digite seu e-mail para recuperar a senha.');
+    return;
+  }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    alert('Um link de redefinição de senha foi enviado para o seu e-mail.');
+  } catch(e) {
+    console.error(e);
+    alert('Erro ao enviar e-mail: ' + e.message);
+  }
+});
+
+
 loginBtn.addEventListener('click', async ()=>{
   const email = emailIn.value.trim();
   const pass = passIn.value;
@@ -1145,6 +1340,12 @@ loginBtn.addEventListener('click', async ()=>{
   catch(e){ console.error(e); alert(e.message); }
 });
 logoutBtn.addEventListener('click', async ()=>{ await signOut(auth); });
+
+
+
+
+
+
 
 onAuthStateChanged(auth, async (u)=>{
   currentUser = u;
