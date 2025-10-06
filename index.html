@@ -619,7 +619,7 @@ ctx.restore();
 
 <!-- Login screen -->
 <main id="app">
-  <section id="loginScreen" class="center-screen">
+ <section id="loginScreen" class="center-screen" style="display:none">
     <div class="card login-card">
       <div style="text-align:center;margin-bottom:8px"><img src="abnutri_logo.png" alt="AB Logo" style="width:120px;margin-bottom:8px"><div class="small-muted">Controle diário de calorias — faça login</div></div>
       <input id="email" class="input" placeholder="Email" />
@@ -2010,9 +2010,26 @@ function renderMealButtons(){
     container.appendChild(btn);
   });
   attachMealButtonHandlers();
-  // Mantém o botão ativo se existir
+
+  // Mantém o botão ativo se existir; caso contrário, seleciona automaticamente 'cafedamanha'
   const active = container.querySelector(`.chip[data-meal="${selectedMeal}"]`);
-  if(active) active.classList.add('active');
+  if(active) {
+    active.classList.add('active');
+  } else {
+    // tenta selecionar o café da manhã por padrão
+    const defaultBtn = container.querySelector('.chip[data-meal="cafedamanha"]');
+    if(defaultBtn) {
+      selectedMeal = 'cafedamanha';
+      defaultBtn.classList.add('active');
+    } else {
+      // fallback para o primeiro botão disponível (evita "nenhum selecionado")
+      const firstBtn = container.querySelector('.chip.meal');
+      if(firstBtn) {
+        selectedMeal = firstBtn.dataset.meal;
+        firstBtn.classList.add('active');
+      }
+    }
+  }
 }
 
 // Renderiza lista de configuração dentro do Check-up Pessoal
