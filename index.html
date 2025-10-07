@@ -1860,19 +1860,43 @@ document.querySelectorAll('.meal').forEach(b=>{
   });
 });
 
-addToRegistroBtn.addEventListener('click', async ()=>{
+addToRegistroBtn.addEventListener('click', async () => {
   const foodId = foodSelect.value;
   const qty = parseFloat(foodQty.value);
-  if(!foodId || !qty){ alert('Selecione alimento e quantidade'); return; }
-  const item = bankCache.find(b=>b.id===foodId);
-  if(!item) return alert('Alimento não encontrado');
-  const factor = qty/100;
-  const entry = { name: item.name, qty, prot: item.prot*factor, carb: item.carb*factor, fat: item.fat*factor, kcal: Math.round(item.kcal*factor) };
+  if (!foodId || !qty) {
+    alert('Selecione alimento e quantidade');
+    return;
+  }
+
+  const item = bankCache.find(b => b.id === foodId);
+  if (!item) {
+    alert('Alimento não encontrado');
+    return;
+  }
+
+  const factor = qty / 100;
+
+  const entry = {
+    name: item.name || '',
+    qty,
+    prot: Number(((item.prot || 0) * factor).toFixed(3)),
+    carb: Number(((item.carb || 0) * factor).toFixed(3)),
+    fat: Number(((item.fat || 0) * factor).toFixed(3)),
+    kcal: Math.round((item.kcal || 0) * factor)
+  };
+
+  // garantia de inicialização (evita erro quando o dia está vazio)
+  if (!currentDayData) currentDayData = { meals: {} };
+  if (!currentDayData.meals) currentDayData.meals = {};
+
   const arr = getMealList(selectedMeal);
   arr.push(entry);
-  currentDayData.meals[selectedMeal]=arr;
-  renderMealItems(); computeDaySummary();
+  currentDayData.meals[selectedMeal] = arr;
+
+  renderMealItems();
+  computeDaySummary();
 });
+
 
 // Filtro de alimentos conforme digita
 searchFood.addEventListener('input', () => {
