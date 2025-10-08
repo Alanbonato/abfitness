@@ -561,8 +561,47 @@ body {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
+/* =============================== */
+/* 🔧 Correção de corte no PDF     */
+/* =============================== */
+@media print {
+  /* Evita quebra dentro de seções */
+  .pdf-section, 
+  .refeicao-section, 
+  .meal-section, 
+  table, 
+  tr, 
+  td, 
+  th {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 
+  /* Garante que títulos de seção fiquem com o bloco */
+  h2, h3, h4, h5 {
+    page-break-after: avoid !important;
+  }
 
+  /* Remove margens forçadas em torno do corpo */
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Também vale para html2pdf.js, que respeita essas propriedades */
+.pdf-section,
+.refeicao-section,
+.meal-section,
+table, tr, td, th {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+.refeicao-section {
+  page-break-before: auto;
+  page-break-after: auto;
+}
 </style>
 
 <script type="module">
