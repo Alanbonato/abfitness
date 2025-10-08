@@ -2195,6 +2195,8 @@ aplicarMeta.addEventListener('click', async ()=>{
   // 1) Salva apenas dados pessoais / preferências no metaDoc (merge) —
   //    NÃO salvamos aqui os valores calculados (tmb/tdee/meta/bf) para não
   //    sobrescrever globalmente o que deve ser diário.
+   // 1) Salva dados pessoais / preferências no metaDoc (merge).
+  //    Salvamos também o BF calculado para persistir até o usuário alterá-lo.
   const metaPayload = {
     nome: metaNome.value || '',
     sexo: metaSexo.value,
@@ -2211,8 +2213,11 @@ aplicarMeta.addEventListener('click', async ()=>{
     cintura: metaCintura.value ? parseFloat(metaCintura.value) : (window.userMeta?.cintura ?? 0),
     pescoco: metaPescoco.value ? parseFloat(metaPescoco.value) : (window.userMeta?.pescoco ?? 0),
     quadril: metaQuadril.value ? parseFloat(metaQuadril.value) : (window.userMeta?.quadril ?? 0),
+    // novo: salva bf calculado globalmente para persistência
+    bf: (window.userMetaCalc && window.userMetaCalc.bf !== undefined) ? window.userMetaCalc.bf : (window.userMeta?.bf ?? 0),
     updatedAt: new Date().toISOString()
   };
+
 
   // salva preferências estáveis (merge)
   try {
