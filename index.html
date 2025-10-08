@@ -551,6 +551,18 @@ button.secondary{
   margin-top: 8px;
 }
 
+/* 🔧 Remover margens e espaçamento no PDF */
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#relatorioDiarioPDF, #previewContainer {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+
 </style>
 
 <script type="module">
@@ -2869,7 +2881,7 @@ async function generatePdfFromElement(element) {
     margin: [0, 10, 10, 10], // topo=0, direita=10, baixo=10, esquerda=10
     filename: `relatorio_${dateStr}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
+    html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
@@ -2891,9 +2903,12 @@ async function generatePdfFromElement(element) {
   // clona e prepara
   const clone = element.cloneNode(true);
 
-  // 🔧 Correção do espaçamento superior
+  // 🔧 remove qualquer margem/padding residual (inclusive do body padrão)
   clone.style.marginTop = '0';
   clone.style.paddingTop = '0';
+  clone.style.padding = '0';
+  clone.style.margin = '0';
+
   const firstChild = clone.firstElementChild;
   if (firstChild) {
     firstChild.style.marginTop = '0';
@@ -2902,23 +2917,41 @@ async function generatePdfFromElement(element) {
 
   clone.style.width = printableWidthPx + 'px';
   clone.style.maxWidth = printableWidthPx + 'px';
-  clone.querySelectorAll('*').forEach(el=>{
+  clone.querySelectorAll('*').forEach(el => {
     el.style.transition = 'none';
     el.style.animation = 'none';
   });
 
+  // cria wrapper invisível e sem margens
   const wrapper = document.createElement('div');
   Object.assign(wrapper.style, {
-    position:'fixed', left:'0', top:'0', opacity:'0', zIndex:999999
+    position: 'fixed',
+    left: '0',
+    top: '0',
+    opacity: '0',
+    zIndex: 999999,
+    margin: '0',
+    padding: '0'
   });
+
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
+
+  // 🔧 força a rolagem no topo absoluto antes de gerar o PDF
+  window.scrollTo(0, 0);
 
   try {
     if (typeof window.html2pdf === 'undefined') {
       await loadScriptAsync('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
     }
+
+    // força o canvas a renderizar sem offset do body
+    const originalBodyMargin = document.body.style.margin;
+    document.body.style.margin = '0';
+
     await window.html2pdf().set(opt).from(clone).save();
+
+    document.body.style.margin = originalBodyMargin;
   } finally {
     wrapper.remove();
   }
