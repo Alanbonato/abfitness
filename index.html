@@ -705,23 +705,62 @@ scanBtn?.addEventListener('click', async () => {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// 🔹 Plugin para desenhar texto no centro do donut
+
+
+
+// 🔹 Plugin para desenhar texto no centro do donut (RESPONSIVO, multi-linha)
 Chart.register({
-id: 'centerText',
-beforeDraw(chart, args, options) {
-if (options.text) {
-const { ctx, chartArea: { width, height } } = chart;
-ctx.save();
-ctx.font = 'bold 16px Inter, sans-serif';
-ctx.fillStyle = getComputedStyle(document.documentElement)
-.getPropertyValue('--text').trim() || '#fff';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'middle';
-ctx.fillText(options.text, width / 2, height / 2);
-ctx.restore();
-}
-}
+  id: 'centerText',
+  beforeDraw(chart, args, options) {
+    const text = (options && options.text) ? String(options.text) : '';
+    if (!text) return;
+
+    const { ctx, chartArea } = chart;
+    const { left = 0, right = 0, top = 0, bottom = 0 } = chartArea;
+    const width = (right - left) || chart.width;
+    const height = (bottom - top) || chart.height;
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#fff';
+
+    // área máxima disponível para o texto (percentual do menor lado)
+    const maxTextWidth = Math.min(width, height) * 0.75;
+
+    // tamanho base proporcional ao menor lado do chart
+    let fontSize = Math.floor(Math.min(width, height) / 6); // ajuste inicial
+    fontSize = Math.max(8, Math.min(fontSize, 28)); // clamp (mín 8, máx 28)
+
+    // suporte a múltiplas linhas (se houver '\n')
+    const lines = text.split('\n').map(l => l.trim());
+
+    // reduz a fonte até todas as linhas caberem na largura disponível
+    ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+    while (fontSize > 8) {
+      const tooWide = lines.some(line => ctx.measureText(line).width > maxTextWidth);
+      if (!tooWide) break;
+      fontSize -= 1;
+      ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+    }
+
+    // calcula espaçamento entre linhas e posição inicial vertical
+    const lineHeight = Math.round(fontSize * 1.05);
+    const totalHeight = lineHeight * lines.length;
+    let startY = centerY - (totalHeight / 2) + (lineHeight / 2);
+
+    // desenha cada linha centralizada
+    lines.forEach(line => {
+      ctx.fillText(line, centerX, startY);
+      startY += lineHeight;
+    });
+
+    ctx.restore();
+  }
 });
+
 </script>
   
 </head>
@@ -770,7 +809,7 @@ ctx.restore();
       <path fill="#FBBC05" d="M10.5 28.4c-1.1-3.2-1.1-6.6 0-9.8L2.6 13C.9 16.3 0 20 0 24s.9 7.7 2.6 11l7.9-6.6z"/>
       <path fill="#4285F4" d="M24 48c6.5 0 12-2.1 16-5.8l-7-5.4c-2 1.3-4.6 2.1-9 2.1-6.3 0-11.6-4-13.5-9.5l-7.9 6.6C6.7 42.7 14.8 48 24 48z"/>
     </svg>
-    <span>Entrar com Google no <strong>AB Fitness</strong></span>
+    <span>Entrar com Google no <strong>AB Nutri</strong></span>
   </button>
 
   <!-- Mensagem de status (opcional) -->
