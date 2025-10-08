@@ -1709,18 +1709,86 @@ registroDate.addEventListener('change', async ()=>{ if(!currentUser) return; awa
 async function loadDay(dateStr){
   if(!currentUser) return;
   if(!dateStr) dateStr = dateToYMD(new Date());
+
+  // tenta carregar o documento do dia
   const ddoc = await getDoc(dayDoc(currentUser.uid, dateStr));
+
   if(ddoc.exists()){
+    // dia já salvo → usa os valores gravados
     currentDayData = ddoc.data();
   } else {
-    currentDayData = { meals: {} };
+    // dia inexistente / futuro → criar objeto temporário com treinos zerados
+    // 1) TMB: prefere window.userMeta.tmb, depois window.userMetaCalc.tmb, ou calcula a partir dos campos pessoais
+    let tmb = (window.userMeta && Number.isFinite(Number(window.userMeta.tmb))) ? Number(window.userMeta.tmb)
+            : (window.userMetaCalc && Number.isFinite(Number(window.userMetaCalc.tmb)) ? Number(window.userMetaCalc.tmb) : 0);
+
+    if(!tmb){
+      const peso = parseFloat(window.userMeta?.peso) || 0;
+      const altura = parseFloat(window.userMeta?.altura) || 0;
+      const idade = parseInt(window.userMeta?.idade) || 0;
+      const sexo = (window.userMeta?.sexo) || (metaSexo?.value) || 'M';
+      if(peso && altura && idade){
+        if(sexo === 'M') tmb = Math.round((10*peso)+(6.25*altura)-(5*idade)+5);
+        else tmb = Math.round((10*peso)+(6.25*altura)-(5*idade)-161);
+      }
+    }
+
+    // 2) nível de atividade
+    const nivel = parseFloat(window.userMeta?.nivel) || parseFloat(window.userMetaCalc?.nivel) || 1.2;
+
+    // 3) zera treino (comportamento desejado)
+    const esteiraKcal = 0;
+    const musculacaoKcal = 0;
+
+    // 4) calcula TDEE e aplica objetivo (objetivo pode estar em userMeta ou no select da UI)
+    const tdee = Math.round(tmb * nivel + esteiraKcal + musculacaoKcal);
+    const objetivo = (window.userMeta && window.userMeta.objetivo !== undefined && window.userMeta.objetivo !== null)
+                      ? parseInt(window.userMeta.objetivo)
+                      : (parseInt(metaObjetivo?.value) || 0);
+    const meta = Math.round(tdee + (Number.isFinite(objetivo) ? objetivo : 0));
+
+    // monta currentDayData temporário para renderizar (não grava nada automaticamente)
+    currentDayData = {
+      meals: {},
+      aguaConsumida: 0,
+      tmb: tmb,
+      esteiraKcal: esteiraKcal,
+      musculacaoKcal: musculacaoKcal,
+      tdee: tdee,
+      meta: meta
+    };
   }
+
   // garante que o campo exista
   currentDayData.aguaConsumida = currentDayData.aguaConsumida || 0;
+
+  // renderiza UI com os novos valores
   renderDay();
   // Atualiza UI de água
   atualizarStatusAgua();
+
+  // marca a última data carregada (usada pelo auto-reset)
+  if (dateStr === dateToYMD(new Date())) {
+    window.lastLoadedDate = dateStr;
+  }
 }
+
+
+// ⏰ Auto-reset diário: detecta virada e recarrega a nova data
+setInterval(() => {
+  try {
+    const hoje = dateToYMD(new Date());
+    if (window.lastLoadedDate && window.lastLoadedDate !== hoje) {
+      console.log('[AutoReset] Novo dia detectado:', hoje);
+      window.lastLoadedDate = hoje;
+      if (registroDate) registroDate.value = hoje;
+      loadDay(hoje);
+    }
+  } catch (e) {
+    console.warn('AutoReset error', e);
+  }
+}, 60 * 1000); // checa a cada minuto
+
 
 function renderDay(){
   populateFoodSelect(searchFood.value);
