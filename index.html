@@ -2866,7 +2866,7 @@ async function generatePdfFromElement(element) {
   const dateStr = registroDate?.value || dateToYMD(new Date());
 
   const opt = {
-    margin: 10,
+    margin: [0, 10, 10, 10], // topo=0, direita=10, baixo=10, esquerda=10
     filename: `relatorio_${dateStr}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
@@ -2890,6 +2890,16 @@ async function generatePdfFromElement(element) {
 
   // clona e prepara
   const clone = element.cloneNode(true);
+
+  // 🔧 Correção do espaçamento superior
+  clone.style.marginTop = '0';
+  clone.style.paddingTop = '0';
+  const firstChild = clone.firstElementChild;
+  if (firstChild) {
+    firstChild.style.marginTop = '0';
+    firstChild.style.paddingTop = '0';
+  }
+
   clone.style.width = printableWidthPx + 'px';
   clone.style.maxWidth = printableWidthPx + 'px';
   clone.querySelectorAll('*').forEach(el=>{
@@ -2913,6 +2923,7 @@ async function generatePdfFromElement(element) {
     wrapper.remove();
   }
 }
+
 
 
 
