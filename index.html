@@ -37,7 +37,11 @@
 :root{
   --bg:#0d0f12;--card:#14171a;--line:#23272d;--text:#e8ecf2;--muted:#9aa0a6;--accent:#f59e0b;--accent2:#f8b844;
 }
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,"Noto Sans",sans-serif;background:var(--bg);color:var(--text)}
+*{box-sizing:border-box}body { font-family:Inter,system-ui,Segoe UI,Roboto,Arial,"Noto Sans",sans-serif;
+  background:var(--bg);
+  color:var(--text)
+}
+
 .header{height:88px;display:flex;align-items:center;gap:20px;padding:12px 24px;border-bottom:1px solid #111}
 .brand{display:flex;align-items:center;gap:12px}
 .logo{width:84px;height:84px;border-radius:8px;background:linear-gradient(135deg,#222,#111);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:28px;color:var(--accent)}
@@ -561,85 +565,57 @@ body {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
-/* =============================== */
-/* 🔧 Correção de corte no PDF     */
-/* =============================== */
-@media print {
-  /* Evita quebra dentro de seções */
-  .pdf-section, 
-  .refeicao-section, 
-  .meal-section, 
-  table, 
-  tr, 
-  td, 
-  th {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  /* Garante que títulos de seção fiquem com o bloco */
-  h2, h3, h4, h5 {
-    page-break-after: avoid !important;
-  }
-
-  /* Remove margens forçadas em torno do corpo */
-  body, html {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-}
-
-/* Também vale para html2pdf.js, que respeita essas propriedades */
-.pdf-section,
-.refeicao-section,
-.meal-section,
-table, tr, td, th {
-  page-break-inside: avoid !important;
-  break-inside: avoid !important;
-}
-
-.refeicao-section {
-  page-break-before: auto;
-  page-break-after: auto;
-}
 
 
-/* === Fundo da tela de login (100% da viewport, sem faixas) === */
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-#loginScreen {
+/* ===== TOAST (estilizado AB Nutri) ===== */
+.toast {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: url('login-bg.jpg') center center / cover no-repeat;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  z-index: 1000;
-  overflow: hidden;
+  top: 20px;
+  right: 20px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 16px;
+  border-radius:12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+  color:#fff;
+  font-weight:700;
+  z-index:2147483647;
+  opacity:0;
+  transform:translateY(-12px) scale(.98);
+  transition: opacity .32s ease, transform .32s cubic-bezier(.2,.9,.2,1);
+  max-width:420px;
+  pointer-events: auto;
+  font-family: Inter, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  border: 1px solid rgba(0,0,0,0.08);
 }
 
-/* camada de escurecimento */
-#loginScreen::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 0;
-}
+.toast.show { opacity:1; transform:translateY(0) scale(1); }
 
-/* conteúdo acima da camada */
-#loginScreen > * {
-  position: relative;
-  z-index: 1;
+.toast .icon { width:26px; height:26px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+.toast .content { display:flex; flex-direction:column; gap:2px; }
+.toast .title { font-size:13px; font-weight:900; line-height:1; }
+.toast .msg   { font-size:14px; font-weight:700; line-height:1.05; }
+
+/* variantes de cor */
+.toast--success { background: linear-gradient(180deg,#3b82f6,#1e40af); }
+.toast--error   { background: linear-gradient(180deg,#ef4444,#b91c1c); }
+.toast--info    { background: linear-gradient(180deg,#0ea5e9,#0369a1); } /* opcional */
+
+.toast .close {
+  margin-left:12px;
+  border:none;
+  background:transparent;
+  color:rgba(255,255,255,0.95);
+  font-size:18px;
+  cursor:pointer;
+  line-height:1;
+  padding:4px 6px;
+  border-radius:8px;
 }
+.toast .close:focus { outline:2px solid rgba(255,255,255,0.14); }
+
 
 /* === Fundo com halteres — após login === */
 #mainScreen {
@@ -654,23 +630,129 @@ html, body {
 
 
 
-/* === Fundo sólido apenas para o bloco de Registro Diário === */
-#registroDiario, 
-#registroDiario .card, 
-#registroDiario .content {
-  background-color: rgba(15, 15, 15, 0.95); /* fundo escuro sólido */
-  backdrop-filter: none;                    /* remove transparência */
-  border-radius: 16px;                      /* mantém o formato arredondado */
-  box-shadow: 0 0 12px rgba(0,0,0,0.4);     /* sombra suave */
+/* === Fundo da tela de login (sem interferir no pós-login) === */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-/* texto dentro mais legível sobre o fundo sólido */
-#registroDiario * {
-  color: #f2f2f2 !important;
+#loginScreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('login-bg.jpg') center center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 1;
+}
+
+/* camada de escurecimento */
+#loginScreen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 0;
+}
+
+/* conteúdo do login acima do fundo */
+#loginScreen > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ======= Fix: evita glitches de layer/compositing ======= */
+
+/* cria um contexto de empilhamento para o main, isolando-o de overlays */
+#mainScreen {
+  isolation: isolate;                /* cria uma nova stacking context */
+  -webkit-font-smoothing: antialiased;
+  -webkit-backface-visibility: hidden;
+}
+
+/* promove os canvases de gráfico para sua própria camada GPU */
+.chart-card canvas,
+#macrosChart,
+#kcalChart,
+.chart-card canvas * {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* reduz o impacto do próprio login overlay (opcional/compatível) */
+#loginScreen {
+  contain: paint;        /* isola pintura/compositing (ajuda a evitar repaints no resto) */
+  will-change: opacity;
+  -webkit-backface-visibility: hidden;
 }
 
 
 </style>
+
+<!-- ===== showToast global (cole aqui, logo depois do </style>) ===== -->
+<script>
+(function(){
+  // define window.showToast para que fique disponível em todos os scripts
+  window.showToast = function showToast(message, type = 'success', duration = 2600) {
+    try {
+      const icons = {
+        success: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        error:   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        info:    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="2"/><path d="M12 8v.01" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M11 12h1v4h1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      };
+
+      const toast = document.createElement('div');
+      const variant = (type === 'error') ? 'error' : (type === 'info' ? 'info' : 'success');
+      toast.className = 'toast toast--' + variant;
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+
+      toast.innerHTML = `
+        <div class="icon" aria-hidden="true">${icons[variant] || icons.success}</div>
+        <div class="content">
+          <div class="title">AB Nutri diz:</div>
+          <div class="msg">${String(message)}</div>
+        </div>
+        <button class="close" aria-label="Fechar notificação">&times;</button>
+      `;
+
+      // Garantia caso body ainda não exista
+      const parent = document.body || document.documentElement;
+      parent.appendChild(toast);
+
+      // Mostra com animação
+      requestAnimationFrame(() => toast.classList.add('show'));
+
+      const remove = () => {
+        toast.classList.remove('show');
+        setTimeout(() => { try { toast.remove(); } catch(e) {} }, 350);
+      };
+
+      // Fecha ao clicar no X
+      toast.querySelector('.close').addEventListener('click', (e) => { e.stopPropagation(); remove(); });
+
+      // Fecha ao clicar no toast (opcional)
+      toast.addEventListener('click', () => remove());
+
+      // Se duration > 0, auto remove
+      if (duration > 0) setTimeout(remove, duration);
+    } catch (err) {
+      // fallback discreto se algo falhar
+      console.error('showToast error', err);
+    }
+  };
+})();
+</script>
+
+
 
 <script type="module">
   import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/browser@latest/+esm";
@@ -757,7 +839,7 @@ scanBtn?.addEventListener('click', async () => {
   const newFoodKcalEl = document.getElementById('newFoodKcal');
 
   if(!newFoodNameEl || !newFoodProtEl || !newFoodCarbEl || !newFoodFatEl || !newFoodKcalEl){
-    alert('Erro: elementos do modal não encontrados. Abra o modal de adicionar alimento antes de usar o scanner.');
+    showToast('Erro: elementos do modal não encontrados. Abra o modal de adicionar alimento antes de usar o scanner.');
     return;
   }
 
@@ -774,7 +856,7 @@ scanBtn?.addEventListener('click', async () => {
     if(!barcode) throw new Error('Leitura não retornou código.');
 
     console.log('Código lido:', barcode);
-    alert('Código lido: ' + barcode);
+    showToast('Código lido: ' + barcode);
 
     const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`);
     if(!res.ok) throw new Error('Erro na requisição ao OpenFoodFacts: ' + res.status);
@@ -808,13 +890,13 @@ scanBtn?.addEventListener('click', async () => {
         } catch(e){}
       });
 
-      alert('Dados preenchidos (quando disponíveis).');
+      showToast('Dados preenchidos (quando disponíveis).');
     } else {
-      alert('Produto não encontrado no OpenFoodFacts.');
+      showToast('Produto não encontrado no OpenFoodFacts.');
     }
   } catch(err){
     console.error('Erro no scanner:', err);
-    alert('Erro: ' + (err.message || err));
+    showToast('Erro: ' + (err.message || err));
   } finally {
     try { await stopAllVideoStreams(); } catch(e){}
     preview.style.display = 'none';
@@ -901,7 +983,7 @@ Chart.register({
 
 <!-- Login screen -->
 <main id="app">
- <section id="loginScreen" class="center-screen">
+ <section id="loginScreen" class="center-screen" style="display:none">
     <div class="card login-card">
       <div style="text-align:center;margin-bottom:8px"><img src="abnutri_logo.png" alt="AB Logo" style="width:120px;margin-bottom:8px"><div class="small-muted">Controle diário de calorias — faça login</div></div>
       <input id="email" class="input" placeholder="Email" />
@@ -1352,7 +1434,7 @@ googleLoginBtn?.addEventListener('click', async () => {
       await signInWithRedirect(auth, googleProvider); 
     } catch(err){ 
       console.error('redirect fail', err); 
-      alert(err.message || err); 
+      showToast(err.message || err); 
       if (loginStatus) loginStatus.textContent = "Erro no login. Tente novamente.";
     }
   }
@@ -1501,24 +1583,24 @@ function showPage(page){
 registerBtn.addEventListener('click', async ()=>{
   const email = emailIn.value.trim();
   const pass = passIn.value;
-  if(!email || !pass){ alert('Preencha email e senha'); return; }
-  try{ await createUserWithEmailAndPassword(auth, email, pass); alert('Conta criada.'); }
-  catch(e){ console.error(e); alert(e.message); }
+  if(!email || !pass){ showToast('Preencha email e senha'); return; }
+  try{ await createUserWithEmailAndPassword(auth, email, pass); showToast('Conta criada.'); }
+  catch(e){ console.error(e); showToast(e.message); }
 });
 
 // Recuperação de senha
 forgotPassBtn.addEventListener('click', async ()=>{
   const email = emailIn.value.trim();
   if(!email){ 
-    alert('Por favor, digite seu e-mail para recuperar a senha.');
+    showToast('Por favor, digite seu e-mail para recuperar a senha.');
     return;
   }
   try {
     await sendPasswordResetEmail(auth, email);
-    alert('Um link de redefinição de senha foi enviado para o seu e-mail.');
+    showToast('Um link de redefinição de senha foi enviado para o seu e-mail.');
   } catch(e) {
     console.error(e);
-    alert('Erro ao enviar e-mail: ' + e.message);
+    showToast('Erro ao enviar e-mail: ' + e.message);
   }
 });
 
@@ -1526,9 +1608,9 @@ forgotPassBtn.addEventListener('click', async ()=>{
 loginBtn.addEventListener('click', async ()=>{
   const email = emailIn.value.trim();
   const pass = passIn.value;
-  if(!email || !pass){ alert('Preencha email e senha'); return; }
+  if(!email || !pass){ showToast('Preencha email e senha'); return; }
   try{ await signInWithEmailAndPassword(auth, email, pass); }
-  catch(e){ console.error(e); alert(e.message); }
+  catch(e){ console.error(e); showToast(e.message); }
 });
 logoutBtn.addEventListener('click', async ()=>{ await signOut(auth); });
 
@@ -1660,7 +1742,7 @@ bankTable.addEventListener('click', async (e)=>{
     // On save: treat the inputs as values in the chosen base, then normalize to per 100g for storage
     saveFoodBtn.onclick = async ()=>{
       const name = newFoodName.value.trim();
-      if(!name){ alert('Nome obrigatório'); return; }
+      if(!name){ showToast('Nome obrigatório'); return; }
 
       const protInput = parseFloat(newFoodProt.value) || 0;
       const carbInput = parseFloat(newFoodCarb.value) || 0;
@@ -1723,7 +1805,7 @@ if (newFoodBaseQty) {
 // Ao salvar, atualiza o item no banco (com conversão da base para 100 g)
 saveFoodBtn.onclick = async ()=>{
   const name = newFoodName.value.trim();
-  if(!name){ alert('Nome obrigatório'); return; }
+  if(!name){ showToast('Nome obrigatório'); return; }
 
   const protInput = parseFloat(newFoodProt.value) || 0;
   const carbInput = parseFloat(newFoodCarb.value) || 0;
@@ -1802,7 +1884,7 @@ document.getElementById('closeFoodModal').addEventListener('click', async () => 
 
 async function createFood(){
   const name = newFoodName.value.trim();
-  if(!name){ alert('Nome obrigatório'); return; }
+  if(!name){ showToast('Nome obrigatório'); return; }
 
   // valores que o usuário digitou (podem representar uma base diferente de 100)
   const protInput = parseFloat(newFoodProt.value) || 0;
@@ -1840,7 +1922,7 @@ async function createFood(){
 
 
 document.getElementById('exportBank').addEventListener('click', async ()=>{
-  if(!currentUser) return alert('Logue-se');
+  if(!currentUser) return showToast('Logue-se');
   const data = bankCache;
   const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -1850,7 +1932,7 @@ document.getElementById('exportBank').addEventListener('click', async ()=>{
 document.getElementById('importBank').addEventListener('click', ()=>{
   const f = document.createElement('input'); f.type='file'; f.accept='.json';
   f.onchange = async ()=>{
-    const file = f.files[0]; const txt = await file.text(); try{ const arr=JSON.parse(txt); for(const it of arr){ await addDoc(collection(db, uidPath(currentUser.uid), 'bank'), { name: it.name, prot: it.prot||0, carb: it.carb||0, fat: it.fat||0, kcal: it.kcal||calcKcalFromMacros(it.prot||0,it.carb||0,it.fat||0) }); } await loadBank(); alert('Importado'); }catch(e){alert('Erro ao importar: '+e.message)}
+    const file = f.files[0]; const txt = await file.text(); try{ const arr=JSON.parse(txt); for(const it of arr){ await addDoc(collection(db, uidPath(currentUser.uid), 'bank'), { name: it.name, prot: it.prot||0, carb: it.carb||0, fat: it.fat||0, kcal: it.kcal||calcKcalFromMacros(it.prot||0,it.carb||0,it.fat||0) }); } await loadBank(); showToast('Importado'); }catch(e){showToast('Erro ao importar: '+e.message)}
   }; f.click();
 });
 
@@ -2090,13 +2172,13 @@ addToRegistroBtn.addEventListener('click', async () => {
   const foodId = foodSelect.value;
   const qty = parseFloat(foodQty.value);
   if (!foodId || !qty) {
-    alert('Selecione alimento e quantidade');
+    showToast('Selecione alimento e quantidade');
     return;
   }
 
   const item = bankCache.find(b => b.id === foodId);
   if (!item) {
-    alert('Alimento não encontrado');
+    showToast('Alimento não encontrado');
     return;
   }
 
@@ -2137,13 +2219,13 @@ searchFood.addEventListener('input', () => {
 
 
 document.getElementById('saveDayBtn').addEventListener('click', async ()=>{
-  if(!currentUser) return alert('Faça login para salvar o dia.');
+  if(!currentUser) return showToast('Faça login para salvar o dia.');
   try {
     const dateStr = registroDate.value || dateToYMD(new Date());
     currentDayData.date = dateStr;
     await setDoc(dayDoc(currentUser.uid,dateStr), currentDayData);
-    alert('Dia salvo');
-  } catch(err){ console.error(err); alert('Erro ao salvar o dia: '+(err.message||err)); }
+    showToast('Dia salvo');
+  } catch(err){ console.error(err); showToast('Erro ao salvar o dia: '+(err.message||err)); }
 });
 
 function computeDaySummary(){
@@ -2411,8 +2493,8 @@ calcMetaBtn.addEventListener('click', ()=>{
 });
 
 aplicarMeta.addEventListener('click', async ()=>{
-  if(!currentUser) return alert('Logue-se');
-  if(!window.userMetaCalc) return alert('Calcule antes de aplicar');
+  if(!currentUser) return showToast('Logue-se');
+  if(!window.userMetaCalc) return showToast('Calcule antes de aplicar');
 
   // elementos opcionais
   const metaAguaEl = document.getElementById('metaAgua');
@@ -2475,10 +2557,10 @@ aplicarMeta.addEventListener('click', async ()=>{
     // reinicia lembrete de água se aplicável
     try { iniciarLembreteAgua(); } catch(e){ console.warn('erro iniciando lembrete ao aplicar meta', e); }
 
-    alert('Meta aplicada e salva apenas para o dia selecionado.');
+    showToast('Meta aplicada e salva apenas para o dia selecionado.');
   } catch(e){
     console.error('Erro salvando meta no dia:', e);
-    alert('Erro ao aplicar meta no dia: ' + (e.message || e));
+    showToast('Erro ao aplicar meta no dia: ' + (e.message || e));
   }
 });
 
@@ -2688,7 +2770,7 @@ function attachMealButtonHandlers(){
 /* ====== Eventos de adicionar / salvar ====== */
 addMealBtn?.addEventListener('click', async ()=>{
   const name = (newMealName.value || '').trim();
-  if(!name) return alert('Informe o nome da nova refeição.');
+  if(!name) return showToast('Informe o nome da nova refeição.');
   const id = generateMealId(name);
   if(!window.userMeta) window.userMeta = {};
   window.userMeta.mealsTemplate = window.userMeta.mealsTemplate || [];
@@ -2702,7 +2784,7 @@ addMealBtn?.addEventListener('click', async ()=>{
 if (saveMealsBtn) {
   saveMealsBtn.onclick = async ()=>{
     await saveMealsTemplate();
-    alert('Refeições salvas.');
+    showToast('Refeições salvas.');
   };
 }
 
@@ -2968,14 +3050,14 @@ showPage('registro');
         // evita preview sem conteúdo
         if(!currentUser) {
           // se você não quer forçar login, comente essa linha. Removi essa checagem para permitir preview local:
-          // return alert('Faça login para gerar o preview.');
+          // return showToast('Faça login para gerar o preview.');
         }
         previewContainer.innerHTML = buildPreviewHtml();
         previewContainer.style.display = 'block';
         previewContainer.scrollIntoView({behavior:'smooth'});
       } catch(e){
         console.error('Erro ao gerar preview:', e);
-        alert('Erro ao gerar preview: ' + (e && e.message ? e.message : e));
+        showToast('Erro ao gerar preview: ' + (e && e.message ? e.message : e));
       }
     });
   }
@@ -2985,7 +3067,7 @@ async function generatePdfFromElement(element) {
   const dateStr = registroDate?.value || dateToYMD(new Date());
 
   const opt = {
-    margin: [10, 10, 10, 10], // topo=0, direita=10, baixo=10, esquerda=10
+    margin: [0, 10, 10, 10], // topo=0, direita=10, baixo=10, esquerda=10
     filename: `relatorio_${dateStr}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
@@ -3080,7 +3162,7 @@ async function generatePdfFromElement(element) {
         await generatePdfFromElement(previewContainer);
       } catch(err){
         console.error('Erro ao gerar PDF:', err);
-        alert('Erro ao gerar PDF: ' + (err && err.message ? err.message : err));
+        showToast('Erro ao gerar PDF: ' + (err && err.message ? err.message : err));
       }
     });
   }
@@ -3163,23 +3245,23 @@ async function salvarDiaAtual() {
     await setDoc(dayDoc(currentUser.uid, dateStr), currentDayData);
   } catch (err) {
     console.error('Erro ao salvar dia (água):', err);
-    alert('Erro ao salvar a água: ' + (err.message || err));
+    showToast('Erro ao salvar a água: ' + (err.message || err));
   }
 }
 
 document.getElementById('addAguaBtn')?.addEventListener('click', async ()=>{
-  if(!currentUser) return alert('Faça login para registrar água.');
+  if(!currentUser) return showToast('Faça login para registrar água.');
   const q = parseInt(document.getElementById('aguaInput').value)||0;
-  if(q <= 0) return alert('Informe uma quantidade válida (ml).');
+  if(q <= 0) return showToast('Informe uma quantidade válida (ml).');
   currentDayData.aguaConsumida = (currentDayData.aguaConsumida || 0) + q;
   atualizarStatusAgua();
   await salvarDiaAtual();
 });
 
 document.getElementById('removeAguaBtn')?.addEventListener('click', async ()=>{
-  if(!currentUser) return alert('Faça login para editar água.');
+  if(!currentUser) return showToast('Faça login para editar água.');
   const q = parseInt(document.getElementById('aguaInput').value)||0;
-  if(q <= 0) return alert('Informe uma quantidade válida (ml).');
+  if(q <= 0) return showToast('Informe uma quantidade válida (ml).');
   currentDayData.aguaConsumida = (currentDayData.aguaConsumida || 0) - q;
   if(currentDayData.aguaConsumida < 0) currentDayData.aguaConsumida = 0;
   atualizarStatusAgua();
@@ -3196,7 +3278,7 @@ if(!document.getElementById('resetAguaBtn')){
   const container = document.querySelector('#aguaStatus')?.closest('.card')?.querySelector('.flex');
   if(container) container.appendChild(resetBtn);
   resetBtn.addEventListener('click', async ()=>{
-    if(!currentUser) return alert('Faça login para resetar água.');
+    if(!currentUser) return showToast('Faça login para resetar água.');
     if(!confirm('Resetar a ingestão de água do dia?')) return;
     currentDayData.aguaConsumida = 0;
     atualizarStatusAgua();
@@ -3205,7 +3287,7 @@ if(!document.getElementById('resetAguaBtn')){
 } else {
   // se existe, garante listener
   document.getElementById('resetAguaBtn')?.addEventListener('click', async ()=>{
-    if(!currentUser) return alert('Faça login para resetar água.');
+    if(!currentUser) return showToast('Faça login para resetar água.');
     if(!confirm('Resetar a ingestão de água do dia?')) return;
     currentDayData.aguaConsumida = 0;
     atualizarStatusAgua();
