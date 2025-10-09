@@ -602,6 +602,74 @@ table, tr, td, th {
   page-break-before: auto;
   page-break-after: auto;
 }
+
+
+/* === Fundo da tela de login (100% da viewport, sem faixas) === */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#loginScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: url('login-bg.jpg') center center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+/* camada de escurecimento */
+#loginScreen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 0;
+}
+
+/* conteúdo acima da camada */
+#loginScreen > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* === Fundo com halteres — após login === */
+#mainScreen {
+  background-image: url('bg-halters.png');
+  background-size: 200px;          /* ajusta o tamanho dos desenhos */
+  background-repeat: repeat;       /* repete o padrão */
+  background-position: center;
+  background-color: #0d0d0d;       /* fundo escuro de base */
+  color: var(--text);
+  min-height: 100vh;
+}
+
+
+
+/* === Fundo sólido apenas para o bloco de Registro Diário === */
+#registroDiario, 
+#registroDiario .card, 
+#registroDiario .content {
+  background-color: rgba(15, 15, 15, 0.95); /* fundo escuro sólido */
+  backdrop-filter: none;                    /* remove transparência */
+  border-radius: 16px;                      /* mantém o formato arredondado */
+  box-shadow: 0 0 12px rgba(0,0,0,0.4);     /* sombra suave */
+}
+
+/* texto dentro mais legível sobre o fundo sólido */
+#registroDiario * {
+  color: #f2f2f2 !important;
+}
+
+
 </style>
 
 <script type="module">
@@ -833,7 +901,7 @@ Chart.register({
 
 <!-- Login screen -->
 <main id="app">
- <section id="loginScreen" class="center-screen" style="display:none">
+ <section id="loginScreen" class="center-screen">
     <div class="card login-card">
       <div style="text-align:center;margin-bottom:8px"><img src="abnutri_logo.png" alt="AB Logo" style="width:120px;margin-bottom:8px"><div class="small-muted">Controle diário de calorias — faça login</div></div>
       <input id="email" class="input" placeholder="Email" />
