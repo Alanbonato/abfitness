@@ -43,6 +43,22 @@
 }
 
 .header{height:88px;display:flex;align-items:center;gap:20px;padding:12px 24px;border-bottom:1px solid #111}
+/* === Header fixo no topo após login === */
+body.logged-in .header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Garante espaço no conteúdo abaixo do header fixo */
+body.logged-in #mainScreen {
+  padding-top: 100px; /* espaço igual ou um pouco maior que a altura do header */
+}
+
 .brand{display:flex;align-items:center;gap:12px}
 .logo{width:84px;height:84px;border-radius:8px;background:linear-gradient(135deg,#222,#111);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:28px;color:var(--accent)}
 .title{font-size:28px;color:var(--accent);font-weight:800}
@@ -1629,6 +1645,7 @@ onAuthStateChanged(auth, async (u)=>{
     mainScreen.style.display='';
     topnav.style.display='';
     showPage('registro');
+document.body.classList.add('logged-in'); // adiciona classe para fixar header
     registroDate.value = dateToYMD(new Date());
     await loadBank();
     await loadMeta();
@@ -1637,6 +1654,7 @@ onAuthStateChanged(auth, async (u)=>{
 try { iniciarLembreteAgua(); } catch(e){ console.warn('erro iniciando lembrete apos login', e); }
 
   } else {
+ document.body.classList.remove('logged-in'); // remove a classe no logout
     currentUser = null;
     loginScreen.style.display='';
     mainScreen.style.display='none';
