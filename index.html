@@ -3152,19 +3152,25 @@ const opt = {
   });
 
   // cria wrapper invisível e sem margens
-  const wrapper = document.createElement('div');
+   const wrapper = document.createElement('div');
+  wrapper.setAttribute('aria-hidden','true');
+
   Object.assign(wrapper.style, {
-    position: 'fixed',
+    position: 'fixed',        // mantemos fixed para garantir tamanho previsível
     left: '0',
     top: '0',
+    width: '100%',
+    height: '100%',
     opacity: '0',
     zIndex: 999999,
     margin: '0',
-    padding: '0'
+    padding: '0',
+    pointerEvents: 'none'     // <<< IMPORTANTE: não bloqueia interações / scroll
   });
 
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
+
 
   // 🔧 força a rolagem no topo absoluto antes de gerar o PDF
   window.scrollTo(0, 0);
