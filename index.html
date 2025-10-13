@@ -710,40 +710,24 @@ html, body {
   -webkit-backface-visibility: hidden;
 }
 
-/* === Regras específicas apenas para impressão (PDF) === */
-@media print {
-
-  /* força início de nova página antes de certos blocos (ex: cada refeição) */
-  .page-break {
-    page-break-before: always !important;
-    break-before: page !important;
-  }
-
-  /* evita quebras dentro de elementos importantes */
-  .avoid-break {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  /* impede quebra dentro de tabelas e mantém layout */
-  table, tr, td, th {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  /* garante cores e margens no PDF */
-  body {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    overflow: visible !important;
-  }
-
-  #previewContainer {
-    background: #fff !important;
-    color: #000 !important;
-  }
-
+/* === Controle de quebra para PDF (html2pdf/html2canvas) === */
+.page-break {
+  page-break-before: always !important;
+  break-before: page !important;
 }
+
+.avoid-break {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+/* Evita quebra dentro de tabelas / linhas */
+.ab-preview-table, .ab-preview-table tbody, .ab-preview-table tr, .ab-preview-table td, .ab-preview-table th {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+
 
 
 </style>
@@ -3042,7 +3026,8 @@ showPage('registro');
       const items = Array.isArray(day[mealKey]) ? day[mealKey] : [];
       if(!items || items.length === 0) continue; // ignora refeições vazias
 
-      html += `<div style="margin-top:10px"><div style="font-weight:800;margin-bottom:6px">${mealLabel}</div>`;
+     html += `<div class="avoid-break" style="margin-top:10px"><div style="font-weight:800;margin-bottom:6px">${mealLabel}</div>`;
+
 
       // garante colunas com larguras consistentes
       html += `
@@ -3119,13 +3104,15 @@ showPage('registro');
 async function generatePdfFromElement(element) {
   const dateStr = registroDate?.value || dateToYMD(new Date());
 
-  const opt = {
-    margin: [0, 10, 10, 10], // topo=0, direita=10, baixo=10, esquerda=10
-    filename: `relatorio_${dateStr}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
+const opt = {
+  margin: [0, 10, 10, 10],
+  filename: `relatorio_${dateStr}.pdf`,
+  image: { type: 'jpeg', quality: 0.98 },
+  html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+  pagebreak: { mode: ['css', 'legacy'], before: '.page-break', avoid: '.avoid-break' }
+};
+
 
   // aguarda fontes e imagens
   if (document.fonts && document.fonts.ready) await document.fonts.ready;
