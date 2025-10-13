@@ -710,6 +710,39 @@ html, body {
   -webkit-backface-visibility: hidden;
 }
 
+/* === Regras específicas para geração de PDF === */
+
+/* força início de nova página antes de certos blocos (ex: cada refeição) */
+.page-break {
+  page-break-before: always;
+  break-before: page;
+}
+
+/* evita quebras dentro de elementos importantes */
+.avoid-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* garante que tabelas e subtotais não fiquem cortados */
+table, tr, td, th {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* garante margens e cores no PDF */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  #previewContainer {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
+
+
 
 </style>
 
