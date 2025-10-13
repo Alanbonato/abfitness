@@ -3105,7 +3105,7 @@ async function generatePdfFromElement(element) {
   const dateStr = registroDate?.value || dateToYMD(new Date());
 
 const opt = {
-  margin: [0, 10, 10, 10],
+  margin: [10, 10, 10, 10],
   filename: `relatorio_${dateStr}.pdf`,
   image: { type: 'jpeg', quality: 0.98 },
   html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
