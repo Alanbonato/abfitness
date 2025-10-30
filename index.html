@@ -1035,6 +1035,7 @@ Chart.register({
     <div class="small-muted">“Uma forma simples e prática de cuidar da sua saúde todos os dias.”</div>
 
 
+  
 
 
 
@@ -1426,39 +1427,12 @@ const registerBtn = document.getElementById('registerBtn');
 const emailIn = document.getElementById('email');
 const passIn = document.getElementById('password');
 const logoutBtn = document.getElementById('logoutBtn');
-/* === INÍCIO: Social login (cole AQUI, logo após `const logoutBtn = ...`) === */
-const googleLoginBtn = document.getElementById('googleLoginBtn');
-const facebookLoginBtn = document.getElementById('facebookLoginBtn');
-const appleLoginBtn = document.getElementById('appleLoginBtn');
+// === Login social desativado ===
+// Mantemos a referência pra evitar erro se o botão não existir
+const googleLoginBtn = null;
+const facebookLoginBtn = null;
+const appleLoginBtn = null;
 
-// providers
-const googleProvider = new GoogleAuthProvider();
-const fbProvider = new FacebookAuthProvider();
-const appleProvider = new OAuthProvider('apple.com');
-
-// scopes / ajustes opcionais
-fbProvider.addScope('email');
-
-// handlers
-googleLoginBtn?.addEventListener('click', async () => {
-  const loginStatus = document.getElementById('loginStatus');
-  if (loginStatus) loginStatus.textContent = "Redirecionando para o Google...";
-
-  try {
-    await signInWithPopup(auth, googleProvider);
-    if (loginStatus) loginStatus.textContent = "Login concluído!";
-  } catch (e) {
-    console.error('Google sign-in error', e);
-    if (loginStatus) loginStatus.textContent = "Abrindo login alternativo...";
-    try { 
-      await signInWithRedirect(auth, googleProvider); 
-    } catch(err){ 
-      console.error('redirect fail', err); 
-      showToast(err.message || err); 
-      if (loginStatus) loginStatus.textContent = "Erro no login. Tente novamente.";
-    }
-  }
-});
 
 
 // opcional: processar resultado de redirect (se o usuário veio por redirect)
@@ -2927,8 +2901,16 @@ showPage('registro');
 
   // monta o HTML do preview (usa a ordem das refeições em userMeta.mealsTemplate ou defaultMeals)
   function buildPreviewHtml(){
-    const meta = window.userMeta || {};
-    const day = (currentDayData && currentDayData.meals) ? currentDayData.meals : {};
+  // junta userMeta, userMetaCalc e currentDayData (prioridade: dia > calculado > meta)
+  const meta = Object.assign(
+    {},
+    window.userMeta || {},
+    window.userMetaCalc || {},
+    currentDayData || {}
+  );
+
+  const day = (currentDayData && currentDayData.meals) ? currentDayData.meals : {};
+
     const mealsTemplate = (window.userMeta && Array.isArray(window.userMeta.mealsTemplate) && window.userMeta.mealsTemplate.length) ? window.userMeta.mealsTemplate : (typeof defaultMeals !== 'undefined' ? defaultMeals : []);
     // captura estilos já presentes (link/style) para manter visual (fallback silencioso)
     let styles = '';
