@@ -3277,103 +3277,7 @@ btnPreview.addEventListener('click', async () => {
 
 
 
-
-  
-async function generatePdfFromElement(element) {
-  const dateStr = registroDate?.value || dateToYMD(new Date());
-
-const opt = {
-  margin: [10, 10, 10, 10],
-  filename: `relatorio_${dateStr}.pdf`,
-  image: { type: 'jpeg', quality: 0.98 },
-  html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-  pagebreak: { mode: ['css', 'legacy'], before: '.page-break', avoid: '.avoid-break' }
-};
-
-
-  // aguarda fontes e imagens
-  if (document.fonts && document.fonts.ready) await document.fonts.ready;
-  await Promise.all(
-    Array.from(document.images).filter(img => !img.complete).map(img =>
-      new Promise(res => { img.onload = img.onerror = res; })
-    )
-  );
-
-  // calcula largura A4 útil em px
-  const tester = document.createElement('div');
-  tester.style.width = '190mm';
-  document.body.appendChild(tester);
-  const printableWidthPx = tester.getBoundingClientRect().width;
-  document.body.removeChild(tester);
-
-  // clona e prepara
-  const clone = element.cloneNode(true);
-
-  // 🔧 remove qualquer margem/padding residual (inclusive do body padrão)
-  clone.style.marginTop = '0';
-  clone.style.paddingTop = '0';
-  clone.style.padding = '0';
-  clone.style.margin = '0';
-
-  const firstChild = clone.firstElementChild;
-  if (firstChild) {
-    firstChild.style.marginTop = '0';
-    firstChild.style.paddingTop = '0';
-  }
-
-  clone.style.width = printableWidthPx + 'px';
-  clone.style.maxWidth = printableWidthPx + 'px';
-  clone.querySelectorAll('*').forEach(el => {
-    el.style.transition = 'none';
-    el.style.animation = 'none';
-  });
-
-  // cria wrapper invisível e sem margens
-   const wrapper = document.createElement('div');
-  wrapper.setAttribute('aria-hidden','true');
-
-  Object.assign(wrapper.style, {
-    position: 'fixed',        // mantemos fixed para garantir tamanho previsível
-    left: '0',
-    top: '0',
-    width: '100%',
-    height: '100%',
-    opacity: '0',
-    zIndex: 999999,
-    margin: '0',
-    padding: '0',
-    pointerEvents: 'none'     // <<< IMPORTANTE: não bloqueia interações / scroll
-  });
-
-  wrapper.appendChild(clone);
-  document.body.appendChild(wrapper);
-
-
-  // 🔧 força a rolagem no topo absoluto antes de gerar o PDF
-  window.scrollTo(0, 0);
-
-  try {
-    if (typeof window.html2pdf === 'undefined') {
-      await loadScriptAsync('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
-    }
-
-    // força o canvas a renderizar sem offset do body
-    const originalBodyMargin = document.body.style.margin;
-    document.body.style.margin = '0';
-
-    await window.html2pdf().set(opt).from(clone).save();
-
-    document.body.style.margin = originalBodyMargin;
-  } finally {
-    wrapper.remove();
-  }
-}
-
-
-
-
-  // evento do botão Gerar PDF
+// === Evento do botão Gerar PDF (versão corrigida e compatível com GitHub Pages) ===
 btnPDF.addEventListener('click', async () => {
   if (!currentUser) {
     showToast('Faça login antes de gerar o PDF.', 'error');
@@ -3387,21 +3291,30 @@ btnPDF.addEventListener('click', async () => {
   }
 
   try {
+    // 🔹 Garante que a lib html2pdf está carregada
+    if (typeof window.html2pdf === 'undefined') {
+      await loadScriptAsync('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+    }
+
+    // 🔹 Garante que as imagens (ex: logo) sejam inline para evitar bloqueio CORS
+    await inlineImages(preview);
+
     const opt = {
-      margin:       8,
-      filename:     `Relatorio_${registroDate.value || dateToYMD()}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      margin: 8,
+      filename: `Relatorio_${registroDate.value || dateToYMD()}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, allowTaint: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    await html2pdf().set(opt).from(preview).save();
+    await window.html2pdf().set(opt).from(preview).save();
     showToast('PDF gerado com sucesso!');
   } catch (err) {
-    console.error(err);
+    console.error('❌ Erro ao gerar PDF:', err);
     showToast('Erro ao gerar PDF: ' + (err.message || err), 'error');
   }
 });
+
 
 
 }
