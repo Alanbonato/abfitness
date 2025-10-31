@@ -770,6 +770,8 @@ html, body {
 }
 
 
+
+
 <style>
 @media print {
   .avoid-break {
@@ -783,6 +785,7 @@ html, body {
   }
 }
 </style>
+
 
 
 </style>
@@ -1437,9 +1440,6 @@ Chart.register({
 
       </div>
 
-    </div>
-
-  </section>
 <!-- INICIO: Página Suporte (admin Alan aprova/recusa cadastros) -->
 <section id="page-suporte" style="display:none; padding:12px; max-width:900px; margin:0 auto;">
   <h2>Suporte — Aprovação de Cadastros</h2>
@@ -1449,6 +1449,11 @@ Chart.register({
   </div>
 </section>
 <!-- FIM: Página Suporte -->
+
+    </div>
+
+  </section>
+
 
 
 </main>
@@ -3908,6 +3913,418 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("❌ Erro no Service Worker:", err));
 }
+
+// Refeição atualmente selecionada (usada em Registro e Check-up)
+let selectedMeal = 'cafedamanha';
+
+
+/* ====== Refeições - template personalizável ====== */
+// Default inicial (caso usuário ainda não tenha salvo)
+const defaultMeals = [
+  { id: 'cafedamanha', label: 'Café da manhã' },
+  { id: 'lanchmanha',  label: 'Lanche manhã' },
+  { id: 'almoco',      label: 'Almoço' },
+  { id: 'lanchetarde', label: 'Lanche tarde' },
+  { id: 'pretreino',   label: 'Pré-treino' },
+  { id: 'postreino',   label: 'Pós-treino' },
+  { id: 'jantar',      label: 'Jantar' }
+];
+
+const mealsConfigList = document.getElementById('mealsConfigList');
+const newMealName = document.getElementById('newMealName');
+const addMealBtn = document.getElementById('addMealBtn');
+const saveMealsBtn = document.getElementById('saveMealsBtn');
+
+// Garante que exista um template de refeições no userMeta
+async function ensureMealsTemplate(){
+  if(!window.userMeta) window.userMeta = {};
+  if(!Array.isArray(window.userMeta.mealsTemplate) || window.userMeta.mealsTemplate.length === 0){
+    window.userMeta.mealsTemplate = defaultMeals.slice();
+    if(currentUser){
+      try {
+        await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
+      } catch(e){ console.warn('Falha ao salvar mealsTemplate padrão:', e); }
+    }
+  }
+}
+
+// Renderiza os botões da área de Registro (substitui o HTML estático)
+function renderMealButtons(){
+  const container = document.getElementById('mealBtns');
+  if(!container) return;
+  container.innerHTML = '';
+  (window.userMeta?.mealsTemplate || defaultMeals).forEach(m=>{
+    const btn = document.createElement('button');
+    btn.className = 'chip meal';
+    btn.dataset.meal = m.id;
+    btn.textContent = m.label;
+    container.appendChild(btn);
+  });
+  attachMealButtonHandlers();
+
+  // Mantém botão ativo
+  const active = container.querySelector(`.chip[data-meal="${selectedMeal}"]`);
+  if(active) active.classList.add('active');
+  else {
+    const first = container.querySelector('.chip.meal');
+    if(first){ selectedMeal = first.dataset.meal; first.classList.add('active'); }
+  }
+}
+
+// Renderiza lista de configuração dentro do Check-up Pessoal
+function renderMealsConfig(){
+  if(!mealsConfigList) return;
+  mealsConfigList.innerHTML = '';
+  const arr = (window.userMeta?.mealsTemplate || defaultMeals);
+  arr.forEach((m, idx) => {
+    const row = document.createElement('div');
+    row.className = 'flex';
+    row.style.alignItems = 'center';
+    row.style.gap = '8px';
+    row.style.marginBottom = '8px';
+    row.innerHTML = `
+      <input class="input meal-label" data-id="${m.id}" value="${m.label}" style="flex:1" />
+      <div style="display:flex;gap:6px">
+        <button class="chip btn-up" data-idx="${idx}" title="Subir">▲</button>
+        <button class="chip btn-down" data-idx="${idx}" title="Descer">▼</button>
+      </div>
+      <button class="chip" style="background:#8b1f1f;color:#fff" data-idx="${idx}" data-act="del">Excluir</button>
+    `;
+    mealsConfigList.appendChild(row);
+  });
+
+  // listeners: rename
+  mealsConfigList.querySelectorAll('.meal-label').forEach(inp=>{
+    inp.addEventListener('change', async (e)=>{
+      const id = e.target.dataset.id;
+      const m = window.userMeta.mealsTemplate.find(x => x.id === id);
+      if(m){
+        m.label = e.target.value.trim() || m.label;
+        await saveMealsTemplate();
+        renderMealButtons();
+      }
+    });
+  });
+
+  // listeners: subir
+  mealsConfigList.querySelectorAll('.btn-up').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const idx = parseInt(btn.dataset.idx);
+      if(idx <= 0) return;
+      const arr = window.userMeta.mealsTemplate;
+      [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
+      await saveMealsTemplate();
+      renderMealsConfig();
+      renderMealButtons();
+    });
+  });
+
+  // listeners: descer
+  mealsConfigList.querySelectorAll('.btn-down').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const idx = parseInt(btn.dataset.idx);
+      const arr = window.userMeta.mealsTemplate;
+      if(idx >= arr.length - 1) return;
+      [arr[idx+1], arr[idx]] = [arr[idx], arr[idx+1]];
+      await saveMealsTemplate();
+      renderMealsConfig();
+      renderMealButtons();
+    });
+  });
+
+  // listeners: excluir
+  mealsConfigList.querySelectorAll('button[data-act="del"]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const idx = parseInt(btn.dataset.idx);
+      const arr = window.userMeta.mealsTemplate;
+      const m = arr[idx];
+      if(!m) return;
+      const items = currentDayData.meals?.[m.id] || [];
+      if(items.length > 0){
+        const ok = confirm(`A refeição "${m.label}" contém ${items.length} item(ns). Ao excluir, esses itens serão removidos do registro do dia atual (${registroDate.value}). Confirmar exclusão?`);
+        if(!ok) return;
+        // remove os itens do dia atual e salva a data
+        delete currentDayData.meals[m.id];
+        try {
+          if(currentUser) await setDoc(dayDoc(currentUser.uid, registroDate.value || dateToYMD(new Date())), currentDayData);
+        } catch(e){ console.warn('Falha ao salvar dia ao excluir refeição:', e); }
+        renderMealItems(); computeDaySummary();
+      }
+      arr.splice(idx, 1);
+      await saveMealsTemplate();
+      renderMealsConfig();
+      renderMealButtons();
+    });
+  });
+}
+
+// Gera um id "seguro" para nova refeição (normaliza o nome)
+function generateMealId(label){
+  let id = String(label||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'').replace(/[^a-z0-9_-]/g,'');
+  if(!id) id = 'meal_' + Date.now();
+  if((window.userMeta.mealsTemplate||[]).some(m => m.id === id)) id += '_' + Date.now();
+  return id;
+}
+
+// Salva template no Firestore
+async function saveMealsTemplate(){
+  if(!currentUser) return;
+  try {
+    await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
+    await loadMeta(); // garante que window.userMeta está sincronizado
+  } catch(e){ console.error('Erro salvando mealsTemplate:', e); }
+}
+
+// Liga os botões da aba Registro
+function attachMealButtonHandlers(){
+  document.querySelectorAll('.meal').forEach(b=>{
+    b.replaceWith(b.cloneNode(true));
+  });
+  document.querySelectorAll('.meal').forEach(b=>{
+    b.addEventListener('click', (ev)=>{
+      selectedMeal = ev.currentTarget.dataset.meal;
+      document.querySelectorAll('.meal').forEach(m=>m.classList.remove('active'));
+      ev.currentTarget.classList.add('active');
+      renderMealItems();
+    });
+  });
+}
+
+// Adicionar refeição
+addMealBtn?.addEventListener('click', async ()=>{
+  const name = (newMealName.value || '').trim();
+  if(!name) return showToast('Informe o nome da refeição.');
+  const id = generateMealId(name);
+  window.userMeta.mealsTemplate = window.userMeta.mealsTemplate || [];
+  window.userMeta.mealsTemplate.push({ id, label: name });
+  newMealName.value = '';
+  await saveMealsTemplate();
+  renderMealsConfig();
+  renderMealButtons();
+});
+
+// Salvar manualmente
+saveMealsBtn?.addEventListener('click', async ()=>{
+  await saveMealsTemplate();
+  showToast('Refeições salvas.');
+});
+
+
+/* ====== Patch: handlers resilientes e fallback localStorage ====== */
+
+// 1) Garantia / fallback do template (usa localStorage se Firestore não disponível)
+async function ensureMealsTemplatePatched(){
+  if(!window.userMeta) window.userMeta = {};
+  // tenta recuperar do localStorage se meta inexistente
+  const stored = (() => {
+    try { return localStorage.getItem('ab_mealsTemplate'); } catch(e){ return null; }
+  })();
+  if(!Array.isArray(window.userMeta.mealsTemplate) || window.userMeta.mealsTemplate.length === 0){
+    if(stored) {
+      try { window.userMeta.mealsTemplate = JSON.parse(stored); }
+      catch(e){ window.userMeta.mealsTemplate = defaultMeals.slice(); }
+    } else {
+      window.userMeta.mealsTemplate = defaultMeals.slice();
+    }
+    // tenta salvar no servidor se possível
+    if(typeof currentUser !== 'undefined' && currentUser){
+      try { await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true }); }
+      catch(e){ console.warn('Falha ao salvar mealsTemplate padrão no servidor:', e); }
+    }
+  }
+}
+
+// 2) Salvar template robusto: sempre grava localStorage; tenta Firestore se logado
+async function saveMealsTemplatePatched(){
+  try {
+    localStorage.setItem('ab_mealsTemplate', JSON.stringify(window.userMeta.mealsTemplate || defaultMeals));
+  } catch(e) { console.warn('localStorage save falhou', e); }
+
+  if(typeof currentUser === 'undefined' || !currentUser) {
+    // sem usuário logado: fim aqui (já temos localStorage)
+    console.info('saveMealsTemplatePatched: usuário não logado — salvo no localStorage apenas.');
+    return;
+  }
+
+  try {
+    await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
+    // recarrega meta (se houver função loadMeta)
+    if(typeof loadMeta === 'function') await loadMeta();
+  } catch(e){
+    console.error('Erro ao salvar mealsTemplate no Firestore:', e);
+  }
+}
+
+// 3) Event delegation para botões da aba Registro (evita cloneNode issues)
+function attachMealButtonHandlersPatched(){
+  const container = document.getElementById('mealBtns');
+  if(!container) return;
+  // remove listener anterior (se existir) para não duplicar
+  container.removeEventListener('__ab_meal_click', container.__ab_meal_click_handler);
+  // cria o handler
+  const handler = function(e){
+    const btn = e.target.closest && e.target.closest('.chip.meal');
+    if(!btn) return;
+    // atualiza seleção
+    selectedMeal = btn.dataset.meal;
+    container.querySelectorAll('.chip.meal').forEach(m=>m.classList.remove('active'));
+    btn.classList.add('active');
+    // debug
+    console.info('selectedMeal set to', selectedMeal);
+    // renderiza itens da refeição (se a função existir)
+    if(typeof renderMealItems === 'function') {
+      try { renderMealItems(); }
+      catch(err){ console.warn('renderMealItems erro:', err); }
+    }
+  };
+  // guarda e associa via addEventListener normal (com um nome interno p/ remover depois)
+  container.__ab_meal_click_handler = handler;
+  container.addEventListener('click', handler);
+}
+
+// 4) Re-atribui listeners das linhas de configuração (▲, ▼, excluir)
+//    Esta função faz attach seguro e idempotente (pode ser chamada sempre após renderMealsConfig)
+function attachConfigRowHandlers(){
+  if(!mealsConfigList) return;
+  // remover listeners antigos - limpamos e re-setamos (simpler)
+  mealsConfigList.querySelectorAll('.btn-up, .btn-down, button[data-act="del"], .meal-label').forEach(el=>{
+    el.replaceWith(el.cloneNode(true));
+  });
+
+  // rename
+  mealsConfigList.querySelectorAll('.meal-label').forEach(inp=>{
+    inp.addEventListener('change', async (e)=>{
+      const id = e.target.dataset.id;
+      const m = (window.userMeta.mealsTemplate || []).find(x => x.id === id);
+      if(m){
+        m.label = e.target.value.trim() || m.label;
+        await saveMealsTemplatePatched();
+        renderMealButtons();
+        console.info('Refeição renomeada:', m);
+      }
+    });
+  });
+
+  // subir
+  mealsConfigList.querySelectorAll('.btn-up').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = parseInt(btn.dataset.idx);
+      if(isNaN(idx) || idx <= 0) return;
+      const arr = window.userMeta.mealsTemplate;
+      [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
+      await saveMealsTemplatePatched();
+      renderMealsConfig();
+      renderMealButtons();
+      attachConfigRowHandlers(); // reattach new row handlers
+    });
+  });
+
+  // descer
+  mealsConfigList.querySelectorAll('.btn-down').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = parseInt(btn.dataset.idx);
+      const arr = window.userMeta.mealsTemplate;
+      if(isNaN(idx) || idx >= arr.length - 1) return;
+      [arr[idx+1], arr[idx]] = [arr[idx], arr[idx+1]];
+      await saveMealsTemplatePatched();
+      renderMealsConfig();
+      renderMealButtons();
+      attachConfigRowHandlers();
+    });
+  });
+
+  // excluir
+  mealsConfigList.querySelectorAll('button[data-act="del"]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = parseInt(btn.dataset.idx);
+      const arr = window.userMeta.mealsTemplate;
+      const m = arr[idx];
+      if(!m) return;
+      const items = (typeof currentDayData !== 'undefined' && currentDayData.meals) ? (currentDayData.meals[m.id] || []) : [];
+      if(items.length > 0){
+        const ok = confirm(`A refeição "${m.label}" contém ${items.length} item(ns). Ao excluir, esses itens serão removidos do registro do dia atual. Confirmar?`);
+        if(!ok) return;
+        if(typeof currentDayData !== 'undefined' && currentDayData.meals){
+          delete currentDayData.meals[m.id];
+          if(typeof currentUser !== 'undefined' && currentUser && typeof dayDoc === 'function' && registroDate){
+            try { await setDoc(dayDoc(currentUser.uid, registroDate.value || dateToYMD(new Date())), currentDayData); }
+            catch(e){ console.warn('Falha salvando dia ao excluir refeição:', e); }
+          }
+        }
+        if(typeof renderMealItems === 'function') try { renderMealItems(); } catch(e){ console.warn(e); }
+        if(typeof computeDaySummary === 'function') try { computeDaySummary(); } catch(e){ console.warn(e); }
+      }
+      arr.splice(idx,1);
+      await saveMealsTemplatePatched();
+      renderMealsConfig();
+      renderMealButtons();
+      attachConfigRowHandlers();
+    });
+  });
+}
+
+// 5) Substitui add/salve para usar o patched save
+if(addMealBtn){
+  // remove handler existente e rebind
+  try { addMealBtn.replaceWith(addMealBtn.cloneNode(true)); } catch(e){ /* ignore */ }
+  const newAdd = document.getElementById('addMealBtn');
+  newAdd?.addEventListener('click', async ()=>{
+    const name = ( (document.getElementById('newMealName') || {}).value || '' ).trim();
+    if(!name) return showToast ? showToast('Informe o nome da refeição.') : alert('Informe o nome da refeição.');
+    const id = generateMealId(name);
+    window.userMeta.mealsTemplate = window.userMeta.mealsTemplate || [];
+    window.userMeta.mealsTemplate.push({ id, label: name });
+    (document.getElementById('newMealName') || {}).value = '';
+    await saveMealsTemplatePatched();
+    renderMealsConfig();
+    renderMealButtons();
+    attachConfigRowHandlers();
+  });
+}
+
+// salvar manual
+if(saveMealsBtn){
+  try { saveMealsBtn.replaceWith(saveMealsBtn.cloneNode(true)); } catch(e){}
+  const newSave = document.getElementById('saveMealsBtn');
+  newSave?.addEventListener('click', async ()=>{
+    await saveMealsTemplatePatched();
+    if(typeof showToast === 'function') showToast('Refeições salvas.');
+  });
+}
+
+// 6) Substitui referências usadas anteriormente para os nomes antigos
+// Se o seu código chama ensureMealsTemplate() ou saveMealsTemplate(), 
+// redirecionamos para os patched para evitar duplicação.
+window.ensureMealsTemplate = ensureMealsTemplatePatched;
+window.saveMealsTemplate = saveMealsTemplatePatched;
+window.attachMealButtonHandlers = attachMealButtonHandlersPatched;
+
+// 7) Se já estiver renderizado, re-run para garantir handlers e sync
+try {
+  ensureMealsTemplatePatched().then(()=>{
+    renderMealButtons();
+    renderMealsConfig();
+    attachMealButtonHandlersPatched();
+    attachConfigRowHandlers();
+  });
+} catch(e){ console.warn('Erro no boot do patch de refeições:', e); }
+
+
+// Inicializa tudo
+(async function initMealsUI(){
+  try {
+    if (typeof selectedMeal === 'undefined') {
+      window.selectedMeal = 'cafedamanha';
+    }
+    await ensureMealsTemplate();
+    renderMealButtons();
+    renderMealsConfig();
+  } catch(e){
+    console.warn('initMealsUI erro:', e);
+  }
+})();
+
+
 </script>
 
 
