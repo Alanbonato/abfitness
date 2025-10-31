@@ -1052,6 +1052,9 @@ Chart.register({
     <div class="chip" data-page="metabolismo">Check-up Pessoal</div>
     <div class="chip" data-page="Musculação">Saúde Ativa</div>
     <div class="chip" data-page="exportar">Exportar</div>
+    <!-- ADICIONE: aba Suporte (invisível por padrão, visível só para o seu e-mail) -->
+<div class="chip" data-page="suporte" id="suporteChip" style="display:none">Suporte</div>
+
     <div class="chip" id="logoutBtn" style="margin-left:18px;background:#0b0d0f;border:1px solid #222">Sair</div>
   </nav>
 </header>
@@ -1422,6 +1425,17 @@ Chart.register({
     </div>
 
   </section>
+<!-- INICIO: Página Suporte (admin Alan aprova/recusa cadastros) -->
+<section id="page-suporte" style="display:none; padding:12px; max-width:900px; margin:0 auto;">
+  <h2>Suporte — Aprovação de Cadastros</h2>
+  <p>Somente visível para <strong>alanbnato@gmail.com</strong>.</p>
+  <div id="suporteList">
+    <em>Carregando solicitações...</em>
+  </div>
+</section>
+<!-- FIM: Página Suporte -->
+
+
 </main>
 
 
@@ -1468,7 +1482,11 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { 
+  getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc,
+  collectionGroup, query, where 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYcgm0wfWgecIFvjSV3MF2QLdUuuCwoLU",
@@ -1640,6 +1658,98 @@ function showPage(page){
   if(page==='Musculação') pageMusculacao.style.display='block';
 }
 
+/* ======================
+   Suporte - Aprovar cadastros (visível só para Alan)
+   ====================== */
+const suporteChip = document.getElementById('suporteChip');
+const pageSuporte = document.getElementById('page-suporte');
+
+async function checkShowSuporte(u){
+  // só mostra se e-mail do usuário bater com o seu (Alan)
+  if(!u){ if(suporteChip) suporteChip.style.display='none'; return; }
+  if(u.email === 'alanbnato@gmail.com'){
+    if(suporteChip) suporteChip.style.display='';
+    // adiciona comportamento de navegação ao chip
+    suporteChip.onclick = ()=> showPage('suporte');
+    // carrega lista de pendentes sempre que abrir
+    await loadPendingRegistrations();
+  } else {
+    if(suporteChip) suporteChip.style.display='none';
+  }
+}
+
+// carrega pendências (usa collectionGroup('meta') e procura approved == false)
+async function loadPendingRegistrations(){
+  const container = document.getElementById('suporteList');
+  if(!container) return;
+  container.innerHTML = '<em>Carregando solicitações...</em>';
+  try {
+    const q = query(collectionGroup(db, 'meta'), where('approved','==', false));
+    const snap = await getDocs(q);
+    if(snap.size === 0){
+      container.innerHTML = '<div>Nenhuma solicitação pendente.</div>';
+      return;
+    }
+    // monta lista
+    const list = document.createElement('div');
+    list.style.display='flex'; list.style.flexDirection='column'; list.style.gap='8px';
+    snap.forEach(docu=>{
+      const data = docu.data();
+      // o caminho do documento meta é users/{uid}/meta/{docId} -> pegamos o uid do path
+      const path = docu.ref.path; // ex: users/UID/meta/settings
+      const parts = path.split('/');
+      const uid = parts[1];
+      const box = document.createElement('div');
+      box.style.border='1px solid #ddd'; box.style.padding='8px'; box.style.borderRadius='6px';
+      box.innerHTML = `<div><strong>${data.nome || data.email || uid}</strong> — ${data.idade||'-'} anos • ${data.sexo||''}</div>
+                       <div style="font-size:12px;color:#444;margin-top:6px">Email/UID: ${data.email || uid}</div>
+                       <div style="margin-top:8px">${(data.objetivo||'')}</div>`;
+      const actions = document.createElement('div');
+      actions.style.marginTop='8px'; actions.style.display='flex'; actions.style.gap='8px';
+      const aprovar = document.createElement('button'); aprovar.className='chip'; aprovar.textContent='Aprovar';
+      const excluir = document.createElement('button'); excluir.className='chip'; excluir.textContent='Recusar / Excluir';
+      actions.appendChild(aprovar); actions.appendChild(excluir);
+      box.appendChild(actions);
+      list.appendChild(box);
+
+      aprovar.addEventListener('click', async ()=>{
+        if(!confirm('Aprovar este cadastro?')) return;
+        try {
+          // atualiza approved para true no documento meta/settings do usuário
+          await updateDoc(doc(db, `users/${uid}/meta`, 'settings'), { approved: true });
+          showToast('Cadastro aprovado.');
+          // recarrega lista
+          await loadPendingRegistrations();
+        } catch(e){
+          console.error('Erro aprovando:', e);
+          showToast('Erro aprovando: '+ (e.message||e));
+        }
+      });
+
+      excluir.addEventListener('click', async ()=>{
+        if(!confirm('Excluir esta solicitação? Isso NÃO excluirá o usuário Auth, apenas o meta.')) return;
+        try {
+          await deleteDoc(doc(db, `users/${uid}/meta`, 'settings'));
+          showToast('Solicitação excluída.');
+          await loadPendingRegistrations();
+        } catch(e){
+          console.error('Erro excluindo:', e);
+          showToast('Erro excluindo: '+ (e.message||e));
+        }
+      });
+    });
+    container.innerHTML = '';
+    container.appendChild(list);
+  } catch(e){
+    console.error('loadPendingRegistrations erro', e);
+    container.innerHTML = '<div>Erro ao carregar pendências.</div>';
+  }
+}
+
+// chame checkShowSuporte quando o estado auth mudar — já existe onAuthStateChanged; apenas garanta que chamamos aqui:
+// (se já houver onAuthStateChanged no seu arquivo, adicione checkShowSuporte(u) dentro dele)
+
+
 /* Auth */
 // === BOTÃO "CADASTRAR" ABRE POPUP ===
 registerBtn.addEventListener('click', () => {
@@ -1762,38 +1872,56 @@ logoutBtn.addEventListener('click', async ()=>{ await signOut(auth); });
 
 
 onAuthStateChanged(auth, async (u)=>{
-if (window.skipAuthListener) return;
   currentUser = u;
+  // sempre atualiza visibilidade do suporte
+  try { checkShowSuporte(u); } catch(e){ /* ignore */ }
+
   if(u){
+    // tenta ler meta/settings do usuário para checar approved
+    let ms = null;
+    try {
+      ms = await getDoc(metaDoc(u.uid));
+    } catch(e){ console.warn('Erro lendo metaDoc no onAuthStateChanged', e); }
+
+    const approved = ms && ms.exists() ? (ms.data().approved === true) : false;
+
+    if(!approved){
+      // usuário ainda não aprovado → mostra mensagem e mantém na tela de login
+      // mantém a UI de não-logado (evita flash da home)
+      userEmail.textContent = u.email || u.uid;
+      loginScreen.style.display = ''; // mantém login visível
+      mainScreen.style.display = 'none';
+      topnav.style.display = 'none';
+      document.querySelector('.brand').style.display = 'none';
+      showToast('Seu cadastro foi enviado para análise. Você receberá e-mail quando aprovado.');
+      return; // impede entrar no app
+    }
+
+    // se aprovado === true → proceder para login normal
     document.querySelector('.brand').style.display = 'flex';
     userEmail.textContent = u.email || u.uid;
     loginScreen.style.display='none';
     mainScreen.style.display='';
     topnav.style.display='';
     showPage('registro');
-document.body.classList.add('logged-in'); // adiciona classe para fixar header
-    registroDate.value = dateToYMD(new Date());
-    await loadBank();
-    await loadMeta();
-    await loadDay(registroDate.value);
-// após carregar meta e dia, (re)inicia lembrete de água, se configurado
-try { iniciarLembreteAgua(); } catch(e){ console.warn('erro iniciando lembrete apos login', e); }
 
+    // carrega dados do usuário agora que está logado
+    try { await loadMeta(); } catch(e){}
+    try { await loadBank(); } catch(e){}
+    try { await loadDay(registroDate.value); } catch(e){}
   } else {
- document.body.classList.remove('logged-in'); // remove a classe no logout
+    // logout (seu código existente)
+    document.body.classList.remove('logged-in');
     currentUser = null;
     loginScreen.style.display='';
     mainScreen.style.display='none';
     topnav.style.display='none';
     userEmail.textContent = '';
- // 🔑 Garante que a logo desaparece no logout
     document.querySelector('.brand').style.display = 'none';
-// garante parar o timer ao deslogar
-try { pararLembreteAgua(); } catch(e){ console.warn('erro parando lembrete no logout', e); }
-
-  
+    try { pararLembreteAgua(); } catch(e){}
   }
 });
+
 
 /* Bank CRUD */
 async function loadBank(){
@@ -2897,6 +3025,11 @@ showPage('registro');
   const day = (currentDayData && currentDayData.meals) ? currentDayData.meals : {};
 
     const mealsTemplate = (window.userMeta && Array.isArray(window.userMeta.mealsTemplate) && window.userMeta.mealsTemplate.length) ? window.userMeta.mealsTemplate : (typeof defaultMeals !== 'undefined' ? defaultMeals : []);
+// --- Diagnóstico: verificar dados carregados ---
+console.log('🔍 [DEBUG PREVIEW] currentDayData:', currentDayData);
+console.log('🔍 [DEBUG PREVIEW] mealsTemplate:', mealsTemplate);
+console.log('🔍 [DEBUG PREVIEW] day keys:', Object.keys(day || {}));
+
     // captura estilos já presentes (link/style) para manter visual (fallback silencioso)
     let styles = '';
     try {
@@ -3033,24 +3166,117 @@ showPage('registro');
     return html;
   }
 
-  // evento do botão Gerar Preview
-  if(btnPreview){
-    btnPreview.addEventListener('click', ()=>{
-      try {
-        // evita preview sem conteúdo
-        if(!currentUser) {
-          // se você não quer forçar login, comente essa linha. Removi essa checagem para permitir preview local:
-          // return showToast('Faça login para gerar o preview.');
-        }
-        previewContainer.innerHTML = buildPreviewHtml();
-        previewContainer.style.display = 'block';
-        previewContainer.scrollIntoView({behavior:'smooth'});
-      } catch(e){
-        console.error('Erro ao gerar preview:', e);
-        showToast('Erro ao gerar preview: ' + (e && e.message ? e.message : e));
-      }
-    });
+ // === Gerar Preview (garante que o dia foi carregado antes de montar o HTML) ===
+if(btnPreview){
+btnPreview.addEventListener('click', async () => {
+  if (!currentUser) {
+    showToast('Faça login antes de gerar o preview.', 'error');
+    return;
   }
+
+  const dateStr = registroDate.value || dateToYMD();
+  const daySnap = await getDoc(dayDoc(currentUser.uid, dateStr));
+  const dayData = daySnap.exists() ? daySnap.data() : null;
+
+  if (!dayData || !dayData.meals) {
+    showToast('Nenhum registro encontrado para esta data.', 'info');
+    return;
+  }
+
+  let totalProt = 0, totalCarb = 0, totalFat = 0, totalKcal = 0;
+
+  let html = `
+  <div id="relatorioDiarioPDF" 
+       style="font-family:'Inter',sans-serif;background:#fafafa;
+              color:#111;padding:32px;border-radius:14px;
+              box-shadow:0 0 20px rgba(0,0,0,0.08);max-width:800px;
+              margin:auto;line-height:1.4;">
+    
+    <div style="text-align:center;margin-bottom:24px">
+      <img src="abnutri_logo.png" style="width:90px;height:auto;margin-bottom:8px">
+      <h2 style="margin:0;font-size:24px;color:#f59e0b;">AB Nutri</h2>
+      <div style="color:#666;font-size:14px;">Relatório Diário — ${dateStr}</div>
+    </div>
+
+    <div style="background:#fff;padding:16px;border-radius:10px;
+                border:1px solid #eee;margin-bottom:16px;">
+      <h3 style="margin:0 0 8px 0;color:#111;font-size:18px;">Dados Pessoais</h3>
+      <div style="font-size:14px;color:#444;">
+        Nome: <strong>${metaNome.value || '-'}</strong><br>
+        Idade: ${metaIdade.value || '-'} anos • Sexo: ${metaSexo.value}<br>
+        Altura: ${metaAltura.value} cm • Peso: ${metaPeso.value} kg<br>
+        TMB: ${tmbBadge.querySelector('strong').innerText} • 
+        TDEE: ${tdeeBadge.querySelector('strong').innerText} • 
+        BF: ${bfBadge.querySelector('strong').innerText}<br>
+        Objetivo: ${metaObjetivo.options[metaObjetivo.selectedIndex].text}
+      </div>
+    </div>
+
+    <div style="background:#fff;padding:16px;border-radius:10px;
+                border:1px solid #eee;">
+      <h3 style="margin-top:0;color:#111;font-size:18px;">Registro de Refeições</h3>
+  `;
+
+  for (const [mealName, items] of Object.entries(dayData.meals)) {
+    html += `
+      <div style="margin-top:12px;margin-bottom:6px;
+                  font-weight:700;color:#f59e0b;">${mealName}</div>
+      <table style="width:100%;border-collapse:collapse;
+                    font-size:13px;color:#333;margin-bottom:10px;">
+        <thead>
+          <tr style="background:#f0f0f0;color:#000;">
+            <th style="padding:6px;border:1px solid #ddd;text-align:left;">Alimento</th>
+            <th style="padding:6px;border:1px solid #ddd;">Qtd</th>
+            <th style="padding:6px;border:1px solid #ddd;">Prot</th>
+            <th style="padding:6px;border:1px solid #ddd;">Carb</th>
+            <th style="padding:6px;border:1px solid #ddd;">Gord</th>
+            <th style="padding:6px;border:1px solid #ddd;">Kcal</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    
+    if (Array.isArray(items) && items.length > 0) {
+      items.forEach(it => {
+        totalProt += it.prot || 0;
+        totalCarb += it.carb || 0;
+        totalFat  += it.fat || 0;
+        totalKcal += it.kcal || 0;
+        html += `
+          <tr>
+            <td style="padding:6px;border:1px solid #eee;">${it.name}</td>
+            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.qty}</td>
+            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.prot?.toFixed(1) || 0}</td>
+            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.carb?.toFixed(1) || 0}</td>
+            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.fat?.toFixed(1) || 0}</td>
+            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.kcal?.toFixed(1) || 0}</td>
+          </tr>`;
+      });
+    } else {
+      html += `<tr><td colspan="6" style="text-align:center;padding:6px;border:1px solid #eee;">Nenhum alimento registrado</td></tr>`;
+    }
+    html += `</tbody></table>`;
+  }
+
+  html += `
+    <div style="margin-top:20px;background:#fff;padding:14px;
+                border:1px solid #eee;border-radius:10px;">
+      <h3 style="margin:0 0 8px 0;color:#111;">Resumo do Dia</h3>
+      <div style="font-weight:700;color:#333;">
+        🍗 Proteína: ${totalProt.toFixed(1)} g<br>
+        🍞 Carboidrato: ${totalCarb.toFixed(1)} g<br>
+        🥑 Gordura: ${totalFat.toFixed(1)} g<br>
+        🔥 Total: ${totalKcal.toFixed(1)} kcal
+      </div>
+    </div>
+  </div>`;
+
+  previewContainer.innerHTML = html;
+  previewContainer.style.display = 'block';
+  showToast('Preview gerado com sucesso!');
+});
+
+
+
 
   
 async function generatePdfFromElement(element) {
@@ -3148,22 +3374,101 @@ const opt = {
 
 
   // evento do botão Gerar PDF
-  if(btnPDF){
-    btnPDF.addEventListener('click', async ()=>{
-      try {
-        if(!previewContainer || !previewContainer.innerHTML.trim()){
-          // tenta gerar automaticamente o preview antes de criar PDF
-          previewContainer.innerHTML = buildPreviewHtml();
-          previewContainer.style.display = 'block';
-        }
-        previewContainer.style.display = 'block'; // garante visível para render correto
-        await generatePdfFromElement(previewContainer);
-      } catch(err){
-        console.error('Erro ao gerar PDF:', err);
-        showToast('Erro ao gerar PDF: ' + (err && err.message ? err.message : err));
-      }
-    });
+btnPDF.addEventListener('click', async () => {
+  if (!currentUser) {
+    showToast('Faça login antes de gerar o PDF.', 'error');
+    return;
   }
+
+  const dateStr = registroDate.value || dateToYMD();
+  const daySnap = await getDoc(dayDoc(currentUser.uid, dateStr));
+  const dayData = daySnap.exists() ? daySnap.data() : null;
+
+  if (!dayData || !dayData.meals) {
+    showToast('Nenhum registro encontrado para esta data.', 'info');
+    return;
+  }
+
+  let totalProt = 0, totalCarb = 0, totalFat = 0, totalKcal = 0;
+
+  // 🔹 Monta o mesmo HTML do Preview
+  let html = `
+  <div id="relatorioDiarioPDF" style="font-family:Arial,sans-serif;color:#000;background:#fff;padding:20px;">
+    <h2 style="text-align:center;margin-bottom:12px;">Relatório Diário</h2>
+    <p><strong>Gerado por AB Nutri</strong></p>
+    <h3>Dados do Aluno</h3>
+    <p>
+      Nome: ${metaNome.value || '-'}<br>
+      Idade: ${metaIdade.value || '-'} anos • Sexo: ${metaSexo.value}<br>
+      Altura: ${metaAltura.value} cm • Peso: ${metaPeso.value} kg<br>
+      TMB: ${tmbBadge.querySelector('strong').innerText} • 
+      TDEE: ${tdeeBadge.querySelector('strong').innerText} • 
+      BF: ${bfBadge.querySelector('strong').innerText}<br>
+      Objetivo: ${metaObjetivo.options[metaObjetivo.selectedIndex].text}
+    </p>
+    <h3>Registro de Refeições (${dateStr})</h3>
+  `;
+
+  for (const [mealName, items] of Object.entries(dayData.meals)) {
+    html += `<h4>${mealName}</h4>
+             <table border="1" cellspacing="0" cellpadding="6" width="100%" style="border-collapse:collapse;margin-bottom:8px;font-size:13px;">
+             <thead><tr><th>Alimento</th><th>Qtd</th><th>Prot</th><th>Carb</th><th>Gord</th><th>Kcal</th></tr></thead><tbody>`;
+
+    if (Array.isArray(items) && items.length > 0) {
+      items.forEach(it => {
+        totalProt += it.prot || 0;
+        totalCarb += it.carb || 0;
+        totalFat  += it.fat || 0;
+        totalKcal += it.kcal || 0;
+        html += `<tr>
+          <td>${it.name}</td>
+          <td>${it.qty}</td>
+          <td>${it.prot?.toFixed(1) || 0}</td>
+          <td>${it.carb?.toFixed(1) || 0}</td>
+          <td>${it.fat?.toFixed(1) || 0}</td>
+          <td>${it.kcal?.toFixed(1) || 0}</td>
+        </tr>`;
+      });
+    } else {
+      html += `<tr><td colspan="6">Nenhum alimento registrado</td></tr>`;
+    }
+    html += `</tbody></table>`;
+  }
+
+  html += `
+    <h3>Total do Dia</h3>
+    <p>
+      Prot: ${totalProt.toFixed(1)} g • 
+      Carb: ${totalCarb.toFixed(1)} g • 
+      Gord: ${totalFat.toFixed(1)} g • 
+      Total: ${totalKcal.toFixed(1)} kcal
+    </p>
+  </div>`;
+
+  // 🔹 Usa o mesmo HTML para gerar o PDF
+  const opt = {
+    margin:       10,
+    filename:     `Relatorio_${dateStr}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  previewContainer.innerHTML = html;
+  previewContainer.style.display = 'block';
+
+  try {
+    const element = document.getElementById('relatorioDiarioPDF');
+    await html2pdf().set(opt).from(element).save();
+    showToast('PDF gerado com sucesso!');
+  } catch (e) {
+    console.error(e);
+    showToast('Erro ao gerar PDF: ' + e.message, 'error');
+  }
+});
+
+}
+
 })();
 
 
