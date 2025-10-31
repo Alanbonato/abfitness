@@ -3217,10 +3217,43 @@ btnPreview.addEventListener('click', async () => {
       <h3 style="margin-top:0;color:#111;font-size:18px;">Registro de Refeições</h3>
   `;
 
-  for (const [mealName, items] of Object.entries(dayData.meals)) {
-    html += `
-      <div style="margin-top:12px;margin-bottom:6px;
-                  font-weight:700;color:#f59e0b;">${mealName}</div>
+ // === Registro de Refeições (ordenado e com nomes corrigidos) ===
+const mealOrder = [
+  "cafedamanha",
+  "lanchmanha",
+  "almoco",
+  "lanchetarde",
+  "pretreino",
+  "postreino",
+  "jantar",
+  "ceia"
+];
+
+const mealNames = {
+  cafedamanha: "Café da manhã",
+  lanchmanha: "Lanche da manhã",
+  almoco: "Almoço",
+  lanchetarde: "Lanche da tarde",
+  pretreino: "Pré-treino",
+  postreino: "Pós-treino",
+  jantar: "Jantar",
+  ceia: "Ceia"
+};
+
+for (const mealKey of mealOrder) {
+  const items = dayData.meals[mealKey];
+  if (!items || items.length === 0) continue;
+
+  const mealLabel = mealNames[mealKey] || mealKey;
+
+  html += `
+    <div style="margin-top:16px;margin-bottom:6px;
+                font-weight:700;color:#f59e0b;
+                font-size:16px;">${mealLabel}</div>
+
+    <div class="avoid-break" 
+         style="page-break-inside: avoid; background:#fff; border:1px solid #eee; 
+                border-radius:10px; padding:10px; margin-bottom:10px;">
       <table style="width:100%;border-collapse:collapse;
                     font-size:13px;color:#333;margin-bottom:10px;">
         <thead>
@@ -3234,28 +3267,26 @@ btnPreview.addEventListener('click', async () => {
           </tr>
         </thead>
         <tbody>`;
-    
-    if (Array.isArray(items) && items.length > 0) {
-      items.forEach(it => {
-        totalProt += it.prot || 0;
-        totalCarb += it.carb || 0;
-        totalFat  += it.fat || 0;
-        totalKcal += it.kcal || 0;
-        html += `
-          <tr>
-            <td style="padding:6px;border:1px solid #eee;">${it.name}</td>
-            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.qty}</td>
-            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.prot?.toFixed(1) || 0}</td>
-            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.carb?.toFixed(1) || 0}</td>
-            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.fat?.toFixed(1) || 0}</td>
-            <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.kcal?.toFixed(1) || 0}</td>
-          </tr>`;
-      });
-    } else {
-      html += `<tr><td colspan="6" style="text-align:center;padding:6px;border:1px solid #eee;">Nenhum alimento registrado</td></tr>`;
-    }
-    html += `</tbody></table>`;
-  }
+
+  items.forEach(it => {
+    totalProt += it.prot || 0;
+    totalCarb += it.carb || 0;
+    totalFat  += it.fat || 0;
+    totalKcal += it.kcal || 0;
+    html += `
+      <tr>
+        <td style="padding:6px;border:1px solid #eee;">${it.name}</td>
+        <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.qty}</td>
+        <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.prot?.toFixed(1) || 0}</td>
+        <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.carb?.toFixed(1) || 0}</td>
+        <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.fat?.toFixed(1) || 0}</td>
+        <td style="padding:6px;border:1px solid #eee;text-align:center;">${it.kcal?.toFixed(1) || 0}</td>
+      </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+}
+
 
   html += `
     <div style="margin-top:20px;background:#fff;padding:14px;
