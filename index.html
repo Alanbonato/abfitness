@@ -3380,92 +3380,29 @@ btnPDF.addEventListener('click', async () => {
     return;
   }
 
-  const dateStr = registroDate.value || dateToYMD();
-  const daySnap = await getDoc(dayDoc(currentUser.uid, dateStr));
-  const dayData = daySnap.exists() ? daySnap.data() : null;
-
-  if (!dayData || !dayData.meals) {
-    showToast('Nenhum registro encontrado para esta data.', 'info');
+  const preview = document.getElementById('relatorioDiarioPDF');
+  if (!preview) {
+    showToast('Gere o preview primeiro antes de exportar o PDF.', 'info');
     return;
   }
 
-  let totalProt = 0, totalCarb = 0, totalFat = 0, totalKcal = 0;
-
-  // 🔹 Monta o mesmo HTML do Preview
-  let html = `
-  <div id="relatorioDiarioPDF" style="font-family:Arial,sans-serif;color:#000;background:#fff;padding:20px;">
-    <h2 style="text-align:center;margin-bottom:12px;">Relatório Diário</h2>
-    <p><strong>Gerado por AB Nutri</strong></p>
-    <h3>Dados do Aluno</h3>
-    <p>
-      Nome: ${metaNome.value || '-'}<br>
-      Idade: ${metaIdade.value || '-'} anos • Sexo: ${metaSexo.value}<br>
-      Altura: ${metaAltura.value} cm • Peso: ${metaPeso.value} kg<br>
-      TMB: ${tmbBadge.querySelector('strong').innerText} • 
-      TDEE: ${tdeeBadge.querySelector('strong').innerText} • 
-      BF: ${bfBadge.querySelector('strong').innerText}<br>
-      Objetivo: ${metaObjetivo.options[metaObjetivo.selectedIndex].text}
-    </p>
-    <h3>Registro de Refeições (${dateStr})</h3>
-  `;
-
-  for (const [mealName, items] of Object.entries(dayData.meals)) {
-    html += `<h4>${mealName}</h4>
-             <table border="1" cellspacing="0" cellpadding="6" width="100%" style="border-collapse:collapse;margin-bottom:8px;font-size:13px;">
-             <thead><tr><th>Alimento</th><th>Qtd</th><th>Prot</th><th>Carb</th><th>Gord</th><th>Kcal</th></tr></thead><tbody>`;
-
-    if (Array.isArray(items) && items.length > 0) {
-      items.forEach(it => {
-        totalProt += it.prot || 0;
-        totalCarb += it.carb || 0;
-        totalFat  += it.fat || 0;
-        totalKcal += it.kcal || 0;
-        html += `<tr>
-          <td>${it.name}</td>
-          <td>${it.qty}</td>
-          <td>${it.prot?.toFixed(1) || 0}</td>
-          <td>${it.carb?.toFixed(1) || 0}</td>
-          <td>${it.fat?.toFixed(1) || 0}</td>
-          <td>${it.kcal?.toFixed(1) || 0}</td>
-        </tr>`;
-      });
-    } else {
-      html += `<tr><td colspan="6">Nenhum alimento registrado</td></tr>`;
-    }
-    html += `</tbody></table>`;
-  }
-
-  html += `
-    <h3>Total do Dia</h3>
-    <p>
-      Prot: ${totalProt.toFixed(1)} g • 
-      Carb: ${totalCarb.toFixed(1)} g • 
-      Gord: ${totalFat.toFixed(1)} g • 
-      Total: ${totalKcal.toFixed(1)} kcal
-    </p>
-  </div>`;
-
-  // 🔹 Usa o mesmo HTML para gerar o PDF
-  const opt = {
-    margin:       10,
-    filename:     `Relatorio_${dateStr}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2 },
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
-  previewContainer.innerHTML = html;
-  previewContainer.style.display = 'block';
-
   try {
-    const element = document.getElementById('relatorioDiarioPDF');
-    await html2pdf().set(opt).from(element).save();
+    const opt = {
+      margin:       8,
+      filename:     `Relatorio_${registroDate.value || dateToYMD()}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    await html2pdf().set(opt).from(preview).save();
     showToast('PDF gerado com sucesso!');
-  } catch (e) {
-    console.error(e);
-    showToast('Erro ao gerar PDF: ' + e.message, 'error');
+  } catch (err) {
+    console.error(err);
+    showToast('Erro ao gerar PDF: ' + (err.message || err), 'error');
   }
 });
+
 
 }
 
