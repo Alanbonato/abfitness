@@ -1654,24 +1654,42 @@ function dateToYMD(d = new Date(), timeZone = 'America/Sao_Paulo') {
 function calcKcalFromMacros(p,c,f){ return Math.round((p*4)+(c*4)+(f*9)); }
 
 const pageMusculacao = document.getElementById('page-Musculação');
+
 function showPage(page){
+  // Oculta todas as seções
   pageRegistro.style.display = 'none';
   pageBanco.style.display = 'none';
   pageAud.style.display = 'none';
   pageMeta.style.display = 'none';
   if(pageExportar) pageExportar.style.display = 'none';
   if(pageMusculacao) pageMusculacao.style.display = 'none';
+  if(pageSuporte) pageSuporte.style.display = 'none'; // <-- garante reset da aba Suporte
 
-  document.querySelectorAll('.topnav .chip').forEach(ch=>ch.classList.remove('active'));
+  // Remove destaque dos chips
+  document.querySelectorAll('.topnav .chip').forEach(ch => ch.classList.remove('active'));
   const chip = document.querySelector('.topnav .chip[data-page="'+page+'"]');
   if(chip) chip.classList.add('active');
-  if(page==='registro') pageRegistro.style.display='block';
-  if(page==='banco') pageBanco.style.display='block';
-  if(page==='auditoria') pageAud.style.display='block';
-  if(page==='metabolismo') pageMeta.style.display='block';
-  if(page==='exportar') pageExportar.style.display='block';
-  if(page==='Musculação') pageMusculacao.style.display='block';
+
+  // Mostra a página selecionada
+  if(page === 'registro') pageRegistro.style.display = 'block';
+  if(page === 'banco') pageBanco.style.display = 'block';
+  if(page === 'auditoria') pageAud.style.display = 'block';
+  if(page === 'metabolismo') pageMeta.style.display = 'block';
+  if(page === 'exportar') pageExportar.style.display = 'block';
+  if(page === 'Musculação') pageMusculacao.style.display = 'block';
+  
+  // <-- Adicione este bloco:
+  if(page === 'suporte') {
+    if(pageSuporte) pageSuporte.style.display = 'block';
+    // Atualiza lista de cadastros pendentes toda vez que abrir a aba
+    try {
+      loadPendingRegistrations();
+    } catch (err) {
+      console.warn('Erro ao carregar pendentes:', err);
+    }
+  }
 }
+
 
 /* ======================
    Suporte - Aprovar cadastros (visível só para Alan)
