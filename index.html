@@ -96,7 +96,7 @@ body.logged-in #mainScreen {
 .table th,.table td{padding:12px;border-bottom:1px solid #222;text-align:left}
 .right{display:flex;gap:8px;align-items:center;justify-content:flex-end}
 .meal-buttons{display:flex;gap:8px;margin-bottom:10px}
-.badge{background:#0c0f12;border:1px solid #20252a;padding:10px 14px;border-radius:12px;font-weight:900;min-width:120px;text-align:center}
+.badge{background:#0c0f12;border:1px solid #20252a;padding:10px 14px;border-radius:12px;font-weight:800;min-width:120px;text-align:center}
 .fab{position:fixed;right:18px;bottom:18px;background:var(--accent);color:#111;border-radius:14px;padding:12px 18px;font-weight:900;cursor:pointer}
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:50}
 .modal.open{display:flex}
@@ -728,6 +728,46 @@ html, body {
 }
 
 
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+.register-modal {
+  background: #1b1b1b;
+  color: #fff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.register-modal label {
+  margin-top: 10px;
+  display: block;
+  font-weight: 500;
+}
+
+.register-modal .input {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
 
 
 </style>
@@ -1020,20 +1060,47 @@ Chart.register({
 <main id="app">
  <section id="loginScreen" class="center-screen" style="display:none">
     <div class="card login-card">
-      <div style="text-align:center;margin-bottom:8px"><img src="abnutri_logo.png" alt="AB Logo" style="width:120px;margin-bottom:8px"><div class="small-muted">Controle diário de calorias — faça login</div></div>
+      <div style="text-align:center;margin-bottom:8px"><img src="abnutri_logo.png" alt="AB Logo" style="width:120px;margin-bottom:8px"><div class="small-muted">Uma forma simples e prática de cuidar da sua saúde todos os dias.</div></div>
       <input id="email" class="input" placeholder="Email" />
       <input id="password" class="input" placeholder="Senha" type="password" />
       <div style="display:flex;gap:10px;margin-top:8px">
         <button id="loginBtn" class="btn">Entrar</button>
         <button id="registerBtn" class="btn ghost">Cadastrar</button>
+<!-- === MODAL DE CADASTRO AJUSTADO === -->
+
+<div id="registerPopup" class="modal">
+  <div class="modal-card register-modal">
+    <h2 class="modal-title">Cadastrar usuário</h2>
+    <div class="modal-body">
+      <label>Nome</label><input id="regNome" class="input"/>
+      <label>Idade</label><input id="regIdade" class="input"/>
+      <label>Sexo</label>
+      <select id="regSexo" class="input">
+        <option value="M">Masculino</option>
+        <option value="F">Feminino</option>
+      </select>
+      <label>Peso (kg)</label><input id="regPeso" class="input"/>
+      <label>Altura (cm)</label><input id="regAltura" class="input"/>
+      <label>Email</label><input id="regEmail" class="input"/>
+      <label>Senha</label><input id="regSenha" type="password" class="input"/>
+    </div>
+
+    <div class="modal-actions">
+      <button id="btnSalvarCheckup" class="btn">Salvar check-up e prosseguir</button>
+      <button id="closeRegisterPopup" class="btn ghost">Fechar</button>
+    </div>
+  </div>
+</div>
+
+
 
 <button id="forgotPassBtn" class="secondary">Esqueci minha senha</button>        
 </div>
       <div class="footer-note">Se ainda não tem conta, clique em Cadastrar. </div>
+
     </div>
 
-    <div class="small-muted">“Uma forma simples e prática de cuidar da sua saúde todos os dias.”</div>
-
+<div class="small-muted"></div>
 
   
 
@@ -1574,13 +1641,75 @@ function showPage(page){
 }
 
 /* Auth */
-registerBtn.addEventListener('click', async ()=>{
-  const email = emailIn.value.trim();
-  const pass = passIn.value;
-  if(!email || !pass){ showToast('Preencha email e senha'); return; }
-  try{ await createUserWithEmailAndPassword(auth, email, pass); showToast('Conta criada.'); }
-  catch(e){ console.error(e); showToast(e.message); }
+// === BOTÃO "CADASTRAR" ABRE POPUP ===
+registerBtn.addEventListener('click', () => {
+  document.getElementById('registerPopup').style.display = 'flex';
 });
+
+// === FECHAR POPUP ===
+document.getElementById('closeRegisterPopup')?.addEventListener('click', () => {
+  document.getElementById('registerPopup').style.display = 'none';
+});
+
+// === SALVAR DADOS DO CHECK-UP E CADASTRAR (com aprovação manual) ===
+const btnSalvarCheckup = document.getElementById('btnSalvarCheckup');
+
+btnSalvarCheckup?.addEventListener('click', async () => {
+  const nome = document.getElementById('regNome').value.trim();
+  const idade = parseInt(document.getElementById('regIdade').value.trim());
+  const sexo = document.getElementById('regSexo').value;
+  const peso = parseFloat(document.getElementById('regPeso').value.trim());
+  const altura = parseFloat(document.getElementById('regAltura').value.trim());
+  const email = document.getElementById('regEmail').value.trim();
+  const senha = document.getElementById('regSenha').value.trim();
+
+  if (!nome || !idade || !sexo || !peso || !altura || !email || !senha) {
+    showToast('Preencha todos os campos.', 'error');
+    return;
+  }
+
+ try {
+  // pausa o listener de mudanças de auth para evitar o flash
+  window.skipAuthListener = true;
+
+  // Cria usuário no Auth
+  const cred = await createUserWithEmailAndPassword(auth, email, senha);
+  const uid = cred.user.uid;
+
+  // Salva no Firestore com aprovação pendente
+  await setDoc(doc(db, `users/${uid}/meta`, 'settings'), {
+    nome,
+    idade,
+    sexo,
+    peso,
+    altura,
+    approved: false,
+    createdAt: new Date().toISOString(),
+  });
+
+  // força logout logo após salvar
+  await signOut(auth);
+
+  // restaura listener e interface
+  setTimeout(() => { window.skipAuthListener = false; }, 500);
+
+  // fecha popup e mostra aviso
+  document.getElementById('registerPopup').style.display = 'none';
+  const overlay = document.getElementById('popupOverlay');
+  if (overlay) overlay.style.display = 'none';
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
+  showToast('✅ Seu cadastro foi enviado para análise. Aguarde aprovação do nutricionista.', 'info');
+
+} catch (err) {
+  console.error(err);
+  showToast('Erro ao cadastrar: ' + err.message, 'error');
+  window.skipAuthListener = false;
+}
+
+});
+
+
 
 // Recuperação de senha
 forgotPassBtn.addEventListener('click', async ()=>{
@@ -1598,14 +1727,32 @@ forgotPassBtn.addEventListener('click', async ()=>{
   }
 });
 
-
+// === LOGIN COM VERIFICAÇÃO DE APROVAÇÃO ===
 loginBtn.addEventListener('click', async ()=>{
   const email = emailIn.value.trim();
   const pass = passIn.value;
   if(!email || !pass){ showToast('Preencha email e senha'); return; }
-  try{ await signInWithEmailAndPassword(auth, email, pass); }
-  catch(e){ console.error(e); showToast(e.message); }
+
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    const uid = cred.user.uid;
+
+    // verifica se aprovado
+    const metaSnap = await getDoc(doc(db, `users/${uid}/meta`, 'settings'));
+    if (metaSnap.exists() && metaSnap.data().approved === false) {
+      await signOut(auth);
+      showToast('Cadastro ainda não aprovado. Aguarde liberação.', 'info');
+      return;
+    }
+
+    // se aprovado, login normal
+    showToast('Login realizado com sucesso.');
+  } catch(e) {
+    console.error(e);
+    showToast('Erro no login: ' + e.message, 'error');
+  }
 });
+
 logoutBtn.addEventListener('click', async ()=>{ await signOut(auth); });
 
 
@@ -1615,6 +1762,7 @@ logoutBtn.addEventListener('click', async ()=>{ await signOut(auth); });
 
 
 onAuthStateChanged(auth, async (u)=>{
+if (window.skipAuthListener) return;
   currentUser = u;
   if(u){
     document.querySelector('.brand').style.display = 'flex';
@@ -2563,272 +2711,109 @@ aplicarMeta.addEventListener('click', async ()=>{
 
 
 
+// === loadMeta (substituir por este bloco completo) ===
 async function loadMeta(){
+  // garante que não tentamos carregar sem usuário
   if(!currentUser) return;
-  const ms = await getDoc(metaDoc(currentUser.uid));
-  if(ms.exists()){
-    window.userMeta = ms.data();
 
-/* ====== Refeições - template personalizável ====== */
-// Default inicial (caso usuário ainda não tenha salvo)
-const defaultMeals = [
-  { id: 'cafedamanha', label: 'Café da manhã' },
-  { id: 'lanchmanha',  label: 'Lanche manhã' },
-  { id: 'almoco',      label: 'Almoço' },
-  { id: 'lanchetarde', label: 'Lanche tarde' },
-  { id: 'pretreino',   label: 'Pré-treino' },
-  { id: 'postreino',   label: 'Pós-treino' },
-  { id: 'jantar',      label: 'Jantar' }
-];
-
-const mealsConfigList = document.getElementById('mealsConfigList');
-const newMealName = document.getElementById('newMealName');
-const addMealBtn = document.getElementById('addMealBtn');
-const saveMealsBtn = document.getElementById('saveMealsBtn');
-
-// Garante que exista um template de refeições no userMeta
-async function ensureMealsTemplate(){
-  if(!window.userMeta) window.userMeta = {};
-  if(!Array.isArray(window.userMeta.mealsTemplate) || window.userMeta.mealsTemplate.length === 0){
-    window.userMeta.mealsTemplate = defaultMeals.slice();
-    if(currentUser){
-      try {
-        await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
-      } catch(e){ console.warn('Falha ao salvar mealsTemplate padrão:', e); }
-    }
-  }
-}
-
-// Renderiza os botões da área de Registro (substitui o HTML estático)
-function renderMealButtons(){
-  const container = document.getElementById('mealBtns');
-  if(!container) return;
-  container.innerHTML = '';
-  (window.userMeta?.mealsTemplate || defaultMeals).forEach(m=>{
-    const btn = document.createElement('button');
-    btn.className = 'chip meal';
-    btn.dataset.meal = m.id;
-    btn.textContent = m.label;
-    container.appendChild(btn);
-  });
-  attachMealButtonHandlers();
-
-  // Mantém o botão ativo se existir; caso contrário, seleciona automaticamente 'cafedamanha'
-  const active = container.querySelector(`.chip[data-meal="${selectedMeal}"]`);
-  if(active) {
-    active.classList.add('active');
-  } else {
-    // tenta selecionar o café da manhã por padrão
-    const defaultBtn = container.querySelector('.chip[data-meal="cafedamanha"]');
-    if(defaultBtn) {
-      selectedMeal = 'cafedamanha';
-      defaultBtn.classList.add('active');
-    } else {
-      // fallback para o primeiro botão disponível (evita "nenhum selecionado")
-      const firstBtn = container.querySelector('.chip.meal');
-      if(firstBtn) {
-        selectedMeal = firstBtn.dataset.meal;
-        firstBtn.classList.add('active');
-      }
-    }
-  }
-}
-
-// Renderiza lista de configuração dentro do Check-up Pessoal
-function renderMealsConfig(){
-  if(!mealsConfigList) return;
-  mealsConfigList.innerHTML = '';
-  const arr = (window.userMeta?.mealsTemplate || defaultMeals);
-  arr.forEach((m, idx) => {
-    const row = document.createElement('div');
-    row.className = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '8px';
-    row.style.marginBottom = '8px';
-    row.innerHTML = `
-    <input class="input meal-label" data-id="${m.id}" value="${m.label}" style="flex:1" />
-
-      <div style="display:flex;gap:6px">
-        <button class="chip btn-up" data-idx="${idx}" title="Subir">▲</button>
-        <button class="chip btn-down" data-idx="${idx}" title="Descer">▼</button>
-      </div>
-      <button class="chip" style="background:#8b1f1f;color:#fff" data-idx="${idx}" data-act="del">Excluir</button>
-    `;
-    mealsConfigList.appendChild(row);
-  });
-
-  // listeners: rename
-  mealsConfigList.querySelectorAll('.meal-label').forEach(inp=>{
-    inp.addEventListener('change', async (e)=>{
-      const id = e.target.dataset.id;
-      const m = window.userMeta.mealsTemplate.find(x => x.id === id);
-      if(m){
-        m.label = e.target.value.trim() || m.label;
-        await saveMealsTemplate();
-        renderMealButtons();
-      }
-    });
-  });
-
-  // listeners: subir
-  mealsConfigList.querySelectorAll('.btn-up').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      const idx = parseInt(btn.dataset.idx);
-      if(idx <= 0) return;
-      const arr = window.userMeta.mealsTemplate;
-      [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
-      await saveMealsTemplate();
-      renderMealsConfig();
-      renderMealButtons();
-    });
-  });
-
-  // listeners: descer
-  mealsConfigList.querySelectorAll('.btn-down').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      const idx = parseInt(btn.dataset.idx);
-      const arr = window.userMeta.mealsTemplate;
-      if(idx >= arr.length - 1) return;
-      [arr[idx+1], arr[idx]] = [arr[idx], arr[idx+1]];
-      await saveMealsTemplate();
-      renderMealsConfig();
-      renderMealButtons();
-    });
-  });
-
-  // listeners: excluir
-  mealsConfigList.querySelectorAll('button[data-act="del"]').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      const idx = parseInt(btn.dataset.idx);
-      const arr = window.userMeta.mealsTemplate;
-      const m = arr[idx];
-      if(!m) return;
-      const items = currentDayData.meals?.[m.id] || [];
-      if(items.length > 0){
-        const ok = confirm(`A refeição "${m.label}" contém ${items.length} item(ns). Ao excluir, esses itens serão removidos do registro do dia atual (${registroDate.value}). Confirmar exclusão?`);
-        if(!ok) return;
-        // remove os itens do dia atual e salva a data
-        delete currentDayData.meals[m.id];
-        try {
-          if(currentUser) await setDoc(dayDoc(currentUser.uid, registroDate.value || dateToYMD(new Date())), currentDayData);
-        } catch(e){ console.warn('Falha ao salvar dia ao excluir refeição:', e); }
-        renderMealItems(); computeDaySummary();
-      }
-      arr.splice(idx, 1);
-      await saveMealsTemplate();
-      renderMealsConfig();
-      renderMealButtons();
-    });
-  });
-}
-
-// Gera um id "seguro" para nova refeição (normaliza o nome)
-function generateMealId(label){
-  let id = String(label||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'').replace(/[^a-z0-9_-]/g,'');
-  if(!id) id = 'meal_' + Date.now();
-  // garante unicidade
-  const exists = (window.userMeta.mealsTemplate||[]).some(m => m.id === id);
-  if(exists) id = id + '_' + Date.now();
-  return id;
-}
-
-// Salva template em metaDoc (merge)
-async function saveMealsTemplate(){
-  if(!currentUser){
-    // só atualiza local (se ainda não logado)
-    return;
-  }
   try {
-    await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
-    // atualiza a variável in-memory se quiser forçar read
-    await loadMeta(); // recarrega userMeta e widgets (loadMeta já atualiza UI padrão)
-  } catch(e){
-    console.error('Erro salvando mealsTemplate:', e);
-  }
-}
+    const ms = await getDoc(metaDoc(currentUser.uid));
+    if(!ms.exists()){
+      // se não existe documento, zera userMeta e atualiza UI padronizada
+      window.userMeta = null;
 
-// Attach handlers aos botões da área de Registro (chamado sempre que renderMealButtons cria os botões)
-function attachMealButtonHandlers(){
-  document.querySelectorAll('.meal').forEach(b=>{
-    // remove listeners duplicados (proteção)
-    b.replaceWith(b.cloneNode(true));
-  });
-  document.querySelectorAll('.meal').forEach(b=>{
-    b.addEventListener('click', (ev)=>{
-      selectedMeal = ev.currentTarget.dataset.meal;
-      document.querySelectorAll('.meal').forEach(m=>m.classList.remove('active'));
-      ev.currentTarget.classList.add('active');
-      renderMealItems();
-    });
-  });
-}
+      // limpa inputs da aba Metabolismo / Check-up
+      if (metaNome) metaNome.value = '';
+      if (metaIdade) metaIdade.value = '';
+      if (metaSexo) metaSexo.value = 'M';
+      if (metaPeso) metaPeso.value = '';
+      if (metaAltura) metaAltura.value = '';
+      if (metaAtividade) metaAtividade.value = '1.2';
+      if (metaEsteira) metaEsteira.value = '';
+      if (metaMusculacao) metaMusculacao.value = '';
+      if (metaObjetivo) metaObjetivo.value = '-800';
+      if (metaAgua) metaAgua.value = '';
+      if (metaAguaIntervalo) metaAguaIntervalo.value = '';
 
-/* ====== Eventos de adicionar / salvar ====== */
-addMealBtn?.addEventListener('click', async ()=>{
-  const name = (newMealName.value || '').trim();
-  if(!name) return showToast('Informe o nome da nova refeição.');
-  const id = generateMealId(name);
-  if(!window.userMeta) window.userMeta = {};
-  window.userMeta.mealsTemplate = window.userMeta.mealsTemplate || [];
-  window.userMeta.mealsTemplate.push({ id, label: name });
-  newMealName.value = '';
-  await saveMealsTemplate();
-  renderMealsConfig();
-  renderMealButtons();
-});
-
-if (saveMealsBtn) {
-  saveMealsBtn.onclick = async ()=>{
-    await saveMealsTemplate();
-    showToast('Refeições salvas.');
-  };
-}
-
-/* ====== Inicialização: garantir template e renderizar ====== */
-(async function initMealsUI(){
-  try {
-    await ensureMealsTemplate();
-    renderMealButtons();
-    renderMealsConfig();
-  } catch(e){ console.warn('initMealsUI erro:', e); }
-})();
-
-
-    // campos existentes
-    metaNome.value       = window.userMeta.nome ?? '';
-    metaSexo.value       = window.userMeta.sexo ?? 'M';
-    metaAltura.value     = window.userMeta.altura ?? '';
-    metaIdade.value      = window.userMeta.idade ?? '';
-    metaPeso.value       = window.userMeta.peso ?? '';
-    metaAtividade.value  = window.userMeta.nivel ?? '1.2';
-    metaEsteira.value    = window.userMeta.esteira ?? 0;
-    metaMusculacao.value = window.userMeta.musculacao ?? 0;
-    metaObjetivo.value   = window.userMeta.objetivo ?? '-800';
-
-    // campos de água (pega elemento direto caso não exista variável global)
-    const metaAguaEl = document.getElementById('metaAgua');
-    if(metaAguaEl) metaAguaEl.value = window.userMeta.metaAgua ?? '';
-
-    const metaAguaIntervaloEl = document.getElementById('metaAguaIntervalo');
-    if(metaAguaIntervaloEl) metaAguaIntervaloEl.value = window.userMeta.metaAguaIntervalo ?? '';
-
-    // cintura/pescoco/quadril (essas variáveis já existem no topo do seu arquivo)
-    metaCintura.value = window.userMeta.cintura ?? '';
-    metaPescoco.value = window.userMeta.pescoco ?? '';
-    metaQuadril.value = window.userMeta.quadril ?? '';
-
-    // badges
-    tmbBadge.innerHTML  = 'TMB<br><strong>' + (window.userMeta.tmb ?? 0) + ' kcal</strong>';
-    tdeeBadge.innerHTML = 'TDEE<br><strong>' + (window.userMeta.tdee ?? 0) + ' kcal</strong>';
-    metaBadge.innerHTML = 'Meta<br><strong>' + (window.userMeta.meta ?? 0) + ' kcal</strong>';
-
-    if(window.userMeta.bf){
-      bfBadge.innerHTML = 'BF<br><strong>' + window.userMeta.bf + ' %</strong>';
+      tmbBadge && (tmbBadge.innerHTML = 'TMB<br><strong>0 kcal</strong>');
+      tdeeBadge && (tdeeBadge.innerHTML = 'TDEE<br><strong>0 kcal</strong>');
+      metaBadge && (metaBadge.innerHTML = 'Meta<br><strong>0 kcal</strong>');
+      bfBadge && (bfBadge.innerHTML = 'BF<br><strong>0 %</strong>');
+      return;
     }
-  } else {
-    window.userMeta = null;
+
+    // existe — grava em memória
+    window.userMeta = ms.data() || {};
+
+    // --- Preenche os inputs da aba "Check-up Pessoal" com os campos salvos ---
+    try {
+      if (metaNome) metaNome.value = window.userMeta.nome ?? '';
+      if (metaIdade) metaIdade.value = window.userMeta.idade ?? '';
+      if (metaSexo) metaSexo.value = window.userMeta.sexo ?? 'M';
+      if (metaPeso) metaPeso.value = window.userMeta.peso ?? '';
+      if (metaAltura) metaAltura.value = window.userMeta.altura ?? '';
+      if (metaAtividade) metaAtividade.value = window.userMeta.nivel ?? (window.userMeta.nivel ?? '1.2');
+      if (metaEsteira) metaEsteira.value = window.userMeta.esteira ?? 0;
+      if (metaMusculacao) metaMusculacao.value = window.userMeta.musculacao ?? 0;
+      if (metaObjetivo) metaObjetivo.value = (window.userMeta.objetivo !== undefined) ? window.userMeta.objetivo : '-800';
+      if (metaAgua) metaAgua.value = window.userMeta.metaAgua ?? '';
+      if (metaAguaIntervalo) metaAguaIntervalo.value = window.userMeta.metaAguaIntervalo ?? '';
+      if (metaCintura) metaCintura.value = window.userMeta.cintura ?? '';
+      if (metaPescoco) metaPescoco.value = window.userMeta.pescoco ?? '';
+      if (metaQuadril) metaQuadril.value = window.userMeta.quadril ?? '';
+    } catch(e){
+      console.warn('Erro preenchendo inputs de meta:', e);
+    }
+
+    // --- Badges e valores calculados já salvos (se houver) ---
+    try {
+      tmbBadge && (tmbBadge.innerHTML  = 'TMB<br><strong>' + (window.userMeta.tmb ?? 0) + ' kcal</strong>');
+      tdeeBadge && (tdeeBadge.innerHTML = 'TDEE<br><strong>' + (window.userMeta.tdee ?? 0) + ' kcal</strong>');
+      metaBadge && (metaBadge.innerHTML = 'Meta<br><strong>' + (window.userMeta.meta ?? 0) + ' kcal</strong>');
+      if(window.userMeta.bf) {
+        bfBadge && (bfBadge.innerHTML = 'BF<br><strong>' + window.userMeta.bf + ' %</strong>');
+      } else {
+        bfBadge && (bfBadge.innerHTML = 'BF<br><strong>0 %</strong>');
+      }
+    } catch(e){
+      console.warn('Erro atualizando badges:', e);
+    }
+
+    // --- Garante template de refeições e renderiza botões/configs (se necessário) ---
+    try {
+      await ensureMealsTemplate();   // essa função já verifica window.userMeta e salva se necessário
+      renderMealButtons();
+      renderMealsConfig && renderMealsConfig();
+    } catch(e){
+      console.warn('Erro ao garantir template de refeições após loadMeta:', e);
+    }
+
+    // --- Carrega dia atual (para badges baseados no dia) ---
+    try {
+      const hoje = registroDate && registroDate.value ? registroDate.value : dateToYMD(new Date());
+      await loadDay(hoje);
+    } catch(e){
+      console.warn('Erro ao recarregar dia após loadMeta:', e);
+    }
+
+    // Atualiza UI de água (barra/texto)
+    try { atualizarStatusAgua(); } catch(e){ /* silent */ }
+
+  } catch (err) {
+  // Evita erro falso de permissão logo após login
+  const msg = err && err.message ? err.message.toLowerCase() : '';
+  if (msg.includes('missing') || msg.includes('insufficient permissions')) {
+    console.warn('Permissão temporária insuficiente ao carregar meta. Tentará novamente mais tarde.');
+    return; // não mostra toast, só ignora silenciosamente
   }
+
+  console.error('loadMeta falhou:', err);
+  showToast('Falha ao carregar dados do usuário: ' + (err && err.message ? err.message : err), 'error');
 }
+
+}
+// === fim loadMeta ===
+
 
 /* Auditoria */
 function renderAudit(){
