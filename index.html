@@ -770,6 +770,21 @@ html, body {
 }
 
 
+<style>
+@media print {
+  .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: visible !important;
+  }
+  table, tr, td, th, div, h3, h4, h5 {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+</style>
+
+
 </style>
 
 <!-- ===== showToast global (cole aqui, logo depois do </style>) ===== -->
