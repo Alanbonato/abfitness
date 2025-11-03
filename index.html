@@ -1909,8 +1909,10 @@ logoutBtn.addEventListener('click', async ()=>{ await signOut(auth); });
 
 
 
+// Detecta login / logout do Firebase
 onAuthStateChanged(auth, async (u)=>{
   currentUser = u;
+
   // sempre atualiza visibilidade do suporte
   try { checkShowSuporte(u); } catch(e){ /* ignore */ }
 
@@ -1945,10 +1947,44 @@ onAuthStateChanged(auth, async (u)=>{
 
     // carrega dados do usuário agora que está logado
     try { await loadMeta(); } catch(e){}
+
+    // 🔄 Sincroniza refeições locais com Firestore ao logar
+try {
+  const settingsRef = doc(db, `users/${currentUser.uid}/meta`, 'settings');
+
+  // Lê meta atual
+  const snap = await getDoc(settingsRef);
+  const data = snap.exists() ? snap.data() : {};
+
+  if (window.userMeta && window.userMeta.mealsTemplate?.length) {
+    // Salva o template atualizado
+    console.info('Sincronizando refeições com Firestore (em /meta/settings)...');
+    await setDoc(settingsRef, {
+      ...data,
+      mealsTemplate: window.userMeta.mealsTemplate
+    }, { merge: true });
+  } else if (Array.isArray(data.mealsTemplate)) {
+    // Se não tiver local, carrega do Firestore
+    window.userMeta = window.userMeta || {};
+    window.userMeta.mealsTemplate = data.mealsTemplate;
+    localStorage.setItem('ab_mealsTemplate', JSON.stringify(data.mealsTemplate));
+  }
+
+  // Atualiza interface de refeições
+  if (typeof renderMealButtons === 'function') renderMealButtons();
+  if (typeof renderMealsConfig === 'function') renderMealsConfig();
+  if (typeof attachConfigRowHandlers === 'function') attachConfigRowHandlers();
+
+  console.info('✅ Sincronização de refeições concluída.');
+} catch (e) {
+  console.warn('⚠️ Falha ao sincronizar refeições com Firestore:', e);
+}
+
+
     try { await loadBank(); } catch(e){}
     try { await loadDay(registroDate.value); } catch(e){}
   } else {
-    // logout (seu código existente)
+    // logout
     document.body.classList.remove('logged-in');
     currentUser = null;
     loginScreen.style.display='';
@@ -1959,6 +1995,7 @@ onAuthStateChanged(auth, async (u)=>{
     try { pararLembreteAgua(); } catch(e){}
   }
 });
+
 
 
 /* Bank CRUD */
@@ -4297,6 +4334,10 @@ if(saveMealsBtn){
 // redirecionamos para os patched para evitar duplicação.
 window.ensureMealsTemplate = ensureMealsTemplatePatched;
 window.saveMealsTemplate = saveMealsTemplatePatched;
+// Força a substituição total (garantia)
+ensureMealsTemplate = ensureMealsTemplatePatched;
+saveMealsTemplate   = saveMealsTemplatePatched;
+
 window.attachMealButtonHandlers = attachMealButtonHandlersPatched;
 
 // 7) Se já estiver renderizado, re-run para garantir handlers e sync
@@ -4310,19 +4351,20 @@ try {
 } catch(e){ console.warn('Erro no boot do patch de refeições:', e); }
 
 
-// Inicializa tudo
 (async function initMealsUI(){
   try {
     if (typeof selectedMeal === 'undefined') {
       window.selectedMeal = 'cafedamanha';
     }
-    await ensureMealsTemplate();
+    await ensureMealsTemplatePatched();  // ✅ usa a versão correta
     renderMealButtons();
     renderMealsConfig();
+    attachConfigRowHandlers();            // garante que os botões e inputs funcionem
   } catch(e){
     console.warn('initMealsUI erro:', e);
   }
 })();
+
 
 
 </script>
