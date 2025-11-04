@@ -96,7 +96,7 @@ body.logged-in #mainScreen {
 .table th,.table td{padding:12px;border-bottom:1px solid #222;text-align:left}
 .right{display:flex;gap:8px;align-items:center;justify-content:flex-end}
 .meal-buttons{display:flex;gap:8px;margin-bottom:10px}
-.badge{background:#0c0f12;border:1px solid #20252a;padding:10px 14px;border-radius:12px;font-weight:800;min-width:120px;text-align:center}
+.badge{background:#0c0f12;border:1px solid #20252a;padding:10px 14px;border-radius:12px;font-weight:900;min-width:120px;text-align:center}
 .fab{position:fixed;right:18px;bottom:18px;background:var(--accent);color:#111;border-radius:14px;padding:12px 18px;font-weight:900;cursor:pointer}
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:50}
 .modal.open{display:flex}
@@ -728,64 +728,6 @@ html, body {
 }
 
 
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 999;
-  left: 0; top: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.7);
-  justify-content: center;
-  align-items: center;
-  padding: 10px;
-}
-
-.register-modal {
-  background: #1b1b1b;
-  color: #fff;
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.5);
-  width: 100%;
-  max-width: 420px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.register-modal label {
-  margin-top: 10px;
-  display: block;
-  font-weight: 500;
-}
-
-.register-modal .input {
-  width: 100%;
-  margin-bottom: 8px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 15px;
-}
-
-
-
-
-<style>
-@media print {
-  .avoid-break {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    overflow: visible !important;
-  }
-  table, tr, td, th, div, h3, h4, h5 {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-}
-</style>
-
 
 
 </style>
@@ -1070,9 +1012,8 @@ Chart.register({
     <div class="chip" data-page="metabolismo">Check-up Pessoal</div>
     <div class="chip" data-page="Musculação">Saúde Ativa</div>
     <div class="chip" data-page="exportar">Exportar</div>
-    <!-- ADICIONE: aba Suporte (invisível por padrão, visível só para o seu e-mail) -->
+<!-- ADICIONE: aba Suporte (invisível por padrão, visível só para o seu e-mail) -->
 <div class="chip" data-page="suporte" id="suporteChip" style="display:none">Suporte</div>
-
     <div class="chip" id="logoutBtn" style="margin-left:18px;background:#0b0d0f;border:1px solid #222">Sair</div>
   </nav>
 </header>
@@ -1081,12 +1022,15 @@ Chart.register({
 <main id="app">
  <section id="loginScreen" class="center-screen" style="display:none">
     <div class="card login-card">
-      <div style="text-align:center;margin-bottom:8px"><img src="abnutri_logo.png" alt="AB Logo" style="width:120px;margin-bottom:8px"><div class="small-muted">Uma forma simples e prática de cuidar da sua saúde todos os dias.</div></div>
+      <div style="text-align:center;margin-bottom:8px"><img src="abnutri_logo.png" alt="AB Logo" style="width:120px;margin-bottom:8px"><div class="small-muted">Controle diário de calorias — faça login</div></div>
       <input id="email" class="input" placeholder="Email" />
       <input id="password" class="input" placeholder="Senha" type="password" />
       <div style="display:flex;gap:10px;margin-top:8px">
         <button id="loginBtn" class="btn">Entrar</button>
         <button id="registerBtn" class="btn ghost">Cadastrar</button>
+
+
+
 <!-- === MODAL DE CADASTRO AJUSTADO === -->
 
 <div id="registerPopup" class="modal">
@@ -1118,10 +1062,10 @@ Chart.register({
 <button id="forgotPassBtn" class="secondary">Esqueci minha senha</button>        
 </div>
       <div class="footer-note">Se ainda não tem conta, clique em Cadastrar. </div>
-
     </div>
 
-<div class="small-muted"></div>
+    <div class="small-muted">“Uma forma simples e prática de cuidar da sua saúde todos os dias.”</div>
+
 
   
 
@@ -1440,6 +1384,7 @@ Chart.register({
 
       </div>
 
+
 <!-- INICIO: Página Suporte (admin Alan aprova/recusa cadastros) -->
 <section id="page-suporte" style="display:none; padding:12px; max-width:900px; margin:0 auto;">
   <h2>Suporte — Aprovação de Cadastros</h2>
@@ -1450,12 +1395,10 @@ Chart.register({
 </section>
 <!-- FIM: Página Suporte -->
 
+
     </div>
 
   </section>
-
-
-
 </main>
 
 
@@ -1503,8 +1446,18 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { 
-  getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc,
-  collectionGroup, query, where 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  deleteDoc, 
+  updateDoc, 
+  query, 
+  where, 
+  collectionGroup 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 
@@ -1659,30 +1612,24 @@ function dateToYMD(d = new Date(), timeZone = 'America/Sao_Paulo') {
 function calcKcalFromMacros(p,c,f){ return Math.round((p*4)+(c*4)+(f*9)); }
 
 const pageMusculacao = document.getElementById('page-Musculação');
-
 function showPage(page){
-  // Oculta todas as seções
   pageRegistro.style.display = 'none';
   pageBanco.style.display = 'none';
   pageAud.style.display = 'none';
   pageMeta.style.display = 'none';
   if(pageExportar) pageExportar.style.display = 'none';
   if(pageMusculacao) pageMusculacao.style.display = 'none';
-  if(pageSuporte) pageSuporte.style.display = 'none'; // <-- garante reset da aba Suporte
 
-  // Remove destaque dos chips
-  document.querySelectorAll('.topnav .chip').forEach(ch => ch.classList.remove('active'));
+  document.querySelectorAll('.topnav .chip').forEach(ch=>ch.classList.remove('active'));
   const chip = document.querySelector('.topnav .chip[data-page="'+page+'"]');
   if(chip) chip.classList.add('active');
-
-  // Mostra a página selecionada
-  if(page === 'registro') pageRegistro.style.display = 'block';
-  if(page === 'banco') pageBanco.style.display = 'block';
-  if(page === 'auditoria') pageAud.style.display = 'block';
-  if(page === 'metabolismo') pageMeta.style.display = 'block';
-  if(page === 'exportar') pageExportar.style.display = 'block';
-  if(page === 'Musculação') pageMusculacao.style.display = 'block';
-  
+  if(page==='registro') pageRegistro.style.display='block';
+  if(page==='banco') pageBanco.style.display='block';
+  if(page==='auditoria') pageAud.style.display='block';
+  if(page==='metabolismo') pageMeta.style.display='block';
+  if(page==='exportar') pageExportar.style.display='block';
+  if(page==='Musculação') pageMusculacao.style.display='block';
+ 
   // <-- Adicione este bloco:
   if(page === 'suporte') {
     if(pageSuporte) pageSuporte.style.display = 'block';
@@ -1694,7 +1641,6 @@ function showPage(page){
     }
   }
 }
-
 
 /* ======================
    Suporte - Aprovar cadastros (visível só para Alan)
@@ -1875,6 +1821,7 @@ forgotPassBtn.addEventListener('click', async ()=>{
   }
 });
 
+
 // === LOGIN COM VERIFICAÇÃO DE APROVAÇÃO ===
 loginBtn.addEventListener('click', async ()=>{
   const email = emailIn.value.trim();
@@ -1995,7 +1942,6 @@ try {
     try { pararLembreteAgua(); } catch(e){}
   }
 });
-
 
 
 /* Bank CRUD */
@@ -2401,24 +2347,8 @@ function renderDay(){
   metaDia.textContent = 'Meta diária: ' + (dayMeta || 0) + ' kcal';
 }
 
-function getMealList(meal){
-  // Garante estrutura de dados válida
-  if (!currentDayData) currentDayData = { meals: {} };
-  if (!currentDayData.meals) currentDayData.meals = {};
 
-  // 🔹 Se a refeição ainda não existir, cria um novo array vazio
-  if (!Array.isArray(currentDayData.meals[meal])) {
-    currentDayData.meals[meal] = [];
-  }
-
-  // Retorna diretamente o array específico da refeição
-  return currentDayData.meals[meal];
-}
-
-
-
-
-
+function getMealList(meal){ return currentDayData.meals?.[meal] || []; }
 
 function renderMealItems(){
   mealItemsTable.innerHTML = '';
@@ -2522,23 +2452,11 @@ mealItemsTable.addEventListener('click', async (e)=>{
     window.editIndex = null;
   });
 
-// === Troca de refeição (corrigido) ===
 document.querySelectorAll('.meal').forEach(b=>{
   b.addEventListener('click', (ev)=>{
     selectedMeal = ev.target.dataset.meal;
-
-    // Alterna destaque visual
     document.querySelectorAll('.meal').forEach(m=>m.classList.remove('active'));
     ev.target.classList.add('active');
-
-    // Garante que a refeição atual tenha seu próprio array
-    if (!currentDayData) currentDayData = { meals: {} };
-    if (!currentDayData.meals) currentDayData.meals = {};
-    if (!Array.isArray(currentDayData.meals[selectedMeal])) {
-      currentDayData.meals[selectedMeal] = [];
-    }
-
-    // Renderiza apenas os itens dessa refeição
     renderMealItems();
   });
 });
@@ -2572,20 +2490,12 @@ addToRegistroBtn.addEventListener('click', async () => {
   if (!currentDayData) currentDayData = { meals: {} };
   if (!currentDayData.meals) currentDayData.meals = {};
 
-const arr = getMealList(selectedMeal);
+  const arr = getMealList(selectedMeal);
+  arr.push(entry);
+  currentDayData.meals[selectedMeal] = arr;
 
-// salva uma cópia profunda do objeto entry para evitar reuso de referência
-const itemToSave = JSON.parse(JSON.stringify(entry));
-arr.push(itemToSave);
-
-// assegura associação (getMealList já fez, mas deixamos por segurança)
-currentDayData.meals[selectedMeal] = arr;
-
-// limpa e renderiza apenas os itens da refeição selecionada
-renderMealItems();
-computeDaySummary();
-
-
+  renderMealItems();
+  computeDaySummary();
 });
 
 
@@ -2950,109 +2860,272 @@ aplicarMeta.addEventListener('click', async ()=>{
 
 
 
-// === loadMeta (substituir por este bloco completo) ===
 async function loadMeta(){
-  // garante que não tentamos carregar sem usuário
   if(!currentUser) return;
+  const ms = await getDoc(metaDoc(currentUser.uid));
+  if(ms.exists()){
+    window.userMeta = ms.data();
 
-  try {
-    const ms = await getDoc(metaDoc(currentUser.uid));
-    if(!ms.exists()){
-      // se não existe documento, zera userMeta e atualiza UI padronizada
-      window.userMeta = null;
+/* ====== Refeições - template personalizável ====== */
+// Default inicial (caso usuário ainda não tenha salvo)
+const defaultMeals = [
+  { id: 'cafedamanha', label: 'Café da manhã' },
+  { id: 'lanchmanha',  label: 'Lanche manhã' },
+  { id: 'almoco',      label: 'Almoço' },
+  { id: 'lanchetarde', label: 'Lanche tarde' },
+  { id: 'pretreino',   label: 'Pré-treino' },
+  { id: 'postreino',   label: 'Pós-treino' },
+  { id: 'jantar',      label: 'Jantar' }
+];
 
-      // limpa inputs da aba Metabolismo / Check-up
-      if (metaNome) metaNome.value = '';
-      if (metaIdade) metaIdade.value = '';
-      if (metaSexo) metaSexo.value = 'M';
-      if (metaPeso) metaPeso.value = '';
-      if (metaAltura) metaAltura.value = '';
-      if (metaAtividade) metaAtividade.value = '1.2';
-      if (metaEsteira) metaEsteira.value = '';
-      if (metaMusculacao) metaMusculacao.value = '';
-      if (metaObjetivo) metaObjetivo.value = '-800';
-      if (metaAgua) metaAgua.value = '';
-      if (metaAguaIntervalo) metaAguaIntervalo.value = '';
+const mealsConfigList = document.getElementById('mealsConfigList');
+const newMealName = document.getElementById('newMealName');
+const addMealBtn = document.getElementById('addMealBtn');
+const saveMealsBtn = document.getElementById('saveMealsBtn');
 
-      tmbBadge && (tmbBadge.innerHTML = 'TMB<br><strong>0 kcal</strong>');
-      tdeeBadge && (tdeeBadge.innerHTML = 'TDEE<br><strong>0 kcal</strong>');
-      metaBadge && (metaBadge.innerHTML = 'Meta<br><strong>0 kcal</strong>');
-      bfBadge && (bfBadge.innerHTML = 'BF<br><strong>0 %</strong>');
-      return;
+// Garante que exista um template de refeições no userMeta
+async function ensureMealsTemplate(){
+  if(!window.userMeta) window.userMeta = {};
+  if(!Array.isArray(window.userMeta.mealsTemplate) || window.userMeta.mealsTemplate.length === 0){
+    window.userMeta.mealsTemplate = defaultMeals.slice();
+    if(currentUser){
+      try {
+        await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
+      } catch(e){ console.warn('Falha ao salvar mealsTemplate padrão:', e); }
     }
-
-    // existe — grava em memória
-    window.userMeta = ms.data() || {};
-
-    // --- Preenche os inputs da aba "Check-up Pessoal" com os campos salvos ---
-    try {
-      if (metaNome) metaNome.value = window.userMeta.nome ?? '';
-      if (metaIdade) metaIdade.value = window.userMeta.idade ?? '';
-      if (metaSexo) metaSexo.value = window.userMeta.sexo ?? 'M';
-      if (metaPeso) metaPeso.value = window.userMeta.peso ?? '';
-      if (metaAltura) metaAltura.value = window.userMeta.altura ?? '';
-      if (metaAtividade) metaAtividade.value = window.userMeta.nivel ?? (window.userMeta.nivel ?? '1.2');
-      if (metaEsteira) metaEsteira.value = window.userMeta.esteira ?? 0;
-      if (metaMusculacao) metaMusculacao.value = window.userMeta.musculacao ?? 0;
-      if (metaObjetivo) metaObjetivo.value = (window.userMeta.objetivo !== undefined) ? window.userMeta.objetivo : '-800';
-      if (metaAgua) metaAgua.value = window.userMeta.metaAgua ?? '';
-      if (metaAguaIntervalo) metaAguaIntervalo.value = window.userMeta.metaAguaIntervalo ?? '';
-      if (metaCintura) metaCintura.value = window.userMeta.cintura ?? '';
-      if (metaPescoco) metaPescoco.value = window.userMeta.pescoco ?? '';
-      if (metaQuadril) metaQuadril.value = window.userMeta.quadril ?? '';
-    } catch(e){
-      console.warn('Erro preenchendo inputs de meta:', e);
-    }
-
-    // --- Badges e valores calculados já salvos (se houver) ---
-    try {
-      tmbBadge && (tmbBadge.innerHTML  = 'TMB<br><strong>' + (window.userMeta.tmb ?? 0) + ' kcal</strong>');
-      tdeeBadge && (tdeeBadge.innerHTML = 'TDEE<br><strong>' + (window.userMeta.tdee ?? 0) + ' kcal</strong>');
-      metaBadge && (metaBadge.innerHTML = 'Meta<br><strong>' + (window.userMeta.meta ?? 0) + ' kcal</strong>');
-      if(window.userMeta.bf) {
-        bfBadge && (bfBadge.innerHTML = 'BF<br><strong>' + window.userMeta.bf + ' %</strong>');
-      } else {
-        bfBadge && (bfBadge.innerHTML = 'BF<br><strong>0 %</strong>');
-      }
-    } catch(e){
-      console.warn('Erro atualizando badges:', e);
-    }
-
-    // --- Garante template de refeições e renderiza botões/configs (se necessário) ---
-    try {
-      await ensureMealsTemplatePatched();   // essa função já verifica window.userMeta e salva se necessário
-      renderMealButtons();
-      renderMealsConfig && renderMealsConfig();
-    } catch(e){
-      console.warn('Erro ao garantir template de refeições após loadMeta:', e);
-    }
-
-    // --- Carrega dia atual (para badges baseados no dia) ---
-    try {
-      const hoje = registroDate && registroDate.value ? registroDate.value : dateToYMD(new Date());
-      await loadDay(hoje);
-    } catch(e){
-      console.warn('Erro ao recarregar dia após loadMeta:', e);
-    }
-
-    // Atualiza UI de água (barra/texto)
-    try { atualizarStatusAgua(); } catch(e){ /* silent */ }
-
-  } catch (err) {
-  // Evita erro falso de permissão logo após login
-  const msg = err && err.message ? err.message.toLowerCase() : '';
-  if (msg.includes('missing') || msg.includes('insufficient permissions')) {
-    console.warn('Permissão temporária insuficiente ao carregar meta. Tentará novamente mais tarde.');
-    return; // não mostra toast, só ignora silenciosamente
   }
-
-  console.error('loadMeta falhou:', err);
-  showToast('Falha ao carregar dados do usuário: ' + (err && err.message ? err.message : err), 'error');
 }
 
-}
-// === fim loadMeta ===
+// Renderiza os botões da área de Registro (substitui o HTML estático)
+function renderMealButtons(){
+  const container = document.getElementById('mealBtns');
+  if(!container) return;
+  container.innerHTML = '';
+  (window.userMeta?.mealsTemplate || defaultMeals).forEach(m=>{
+    const btn = document.createElement('button');
+    btn.className = 'chip meal';
+    btn.dataset.meal = m.id;
+    btn.textContent = m.label;
+    container.appendChild(btn);
+  });
+  attachMealButtonHandlers();
 
+  // Mantém o botão ativo se existir; caso contrário, seleciona automaticamente 'cafedamanha'
+  const active = container.querySelector(`.chip[data-meal="${selectedMeal}"]`);
+  if(active) {
+    active.classList.add('active');
+  } else {
+    // tenta selecionar o café da manhã por padrão
+    const defaultBtn = container.querySelector('.chip[data-meal="cafedamanha"]');
+    if(defaultBtn) {
+      selectedMeal = 'cafedamanha';
+      defaultBtn.classList.add('active');
+    } else {
+      // fallback para o primeiro botão disponível (evita "nenhum selecionado")
+      const firstBtn = container.querySelector('.chip.meal');
+      if(firstBtn) {
+        selectedMeal = firstBtn.dataset.meal;
+        firstBtn.classList.add('active');
+      }
+    }
+  }
+}
+
+// Renderiza lista de configuração dentro do Check-up Pessoal
+function renderMealsConfig(){
+  if(!mealsConfigList) return;
+  mealsConfigList.innerHTML = '';
+  const arr = (window.userMeta?.mealsTemplate || defaultMeals);
+  arr.forEach((m, idx) => {
+    const row = document.createElement('div');
+    row.className = 'flex';
+    row.style.alignItems = 'center';
+    row.style.gap = '8px';
+    row.style.marginBottom = '8px';
+    row.innerHTML = `
+    <input class="input meal-label" data-id="${m.id}" value="${m.label}" style="flex:1" />
+
+      <div style="display:flex;gap:6px">
+        <button class="chip btn-up" data-idx="${idx}" title="Subir">▲</button>
+        <button class="chip btn-down" data-idx="${idx}" title="Descer">▼</button>
+      </div>
+      <button class="chip" style="background:#8b1f1f;color:#fff" data-idx="${idx}" data-act="del">Excluir</button>
+    `;
+    mealsConfigList.appendChild(row);
+  });
+
+  // listeners: rename
+  mealsConfigList.querySelectorAll('.meal-label').forEach(inp=>{
+    inp.addEventListener('change', async (e)=>{
+      const id = e.target.dataset.id;
+      const m = window.userMeta.mealsTemplate.find(x => x.id === id);
+      if(m){
+        m.label = e.target.value.trim() || m.label;
+        await saveMealsTemplate();
+        renderMealButtons();
+      }
+    });
+  });
+
+  // listeners: subir
+  mealsConfigList.querySelectorAll('.btn-up').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = parseInt(btn.dataset.idx);
+      if(idx <= 0) return;
+      const arr = window.userMeta.mealsTemplate;
+      [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
+      await saveMealsTemplate();
+      renderMealsConfig();
+      renderMealButtons();
+    });
+  });
+
+  // listeners: descer
+  mealsConfigList.querySelectorAll('.btn-down').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = parseInt(btn.dataset.idx);
+      const arr = window.userMeta.mealsTemplate;
+      if(idx >= arr.length - 1) return;
+      [arr[idx+1], arr[idx]] = [arr[idx], arr[idx+1]];
+      await saveMealsTemplate();
+      renderMealsConfig();
+      renderMealButtons();
+    });
+  });
+
+  // listeners: excluir
+  mealsConfigList.querySelectorAll('button[data-act="del"]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = parseInt(btn.dataset.idx);
+      const arr = window.userMeta.mealsTemplate;
+      const m = arr[idx];
+      if(!m) return;
+      const items = currentDayData.meals?.[m.id] || [];
+      if(items.length > 0){
+        const ok = confirm(`A refeição "${m.label}" contém ${items.length} item(ns). Ao excluir, esses itens serão removidos do registro do dia atual (${registroDate.value}). Confirmar exclusão?`);
+        if(!ok) return;
+        // remove os itens do dia atual e salva a data
+        delete currentDayData.meals[m.id];
+        try {
+          if(currentUser) await setDoc(dayDoc(currentUser.uid, registroDate.value || dateToYMD(new Date())), currentDayData);
+        } catch(e){ console.warn('Falha ao salvar dia ao excluir refeição:', e); }
+        renderMealItems(); computeDaySummary();
+      }
+      arr.splice(idx, 1);
+      await saveMealsTemplate();
+      renderMealsConfig();
+      renderMealButtons();
+    });
+  });
+}
+
+// Gera um id "seguro" para nova refeição (normaliza o nome)
+function generateMealId(label){
+  let id = String(label||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'').replace(/[^a-z0-9_-]/g,'');
+  if(!id) id = 'meal_' + Date.now();
+  // garante unicidade
+  const exists = (window.userMeta.mealsTemplate||[]).some(m => m.id === id);
+  if(exists) id = id + '_' + Date.now();
+  return id;
+}
+
+// Salva template em metaDoc (merge)
+async function saveMealsTemplate(){
+  if(!currentUser){
+    // só atualiza local (se ainda não logado)
+    return;
+  }
+  try {
+    await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
+    // atualiza a variável in-memory se quiser forçar read
+    await loadMeta(); // recarrega userMeta e widgets (loadMeta já atualiza UI padrão)
+  } catch(e){
+    console.error('Erro salvando mealsTemplate:', e);
+  }
+}
+
+// Attach handlers aos botões da área de Registro (chamado sempre que renderMealButtons cria os botões)
+function attachMealButtonHandlers(){
+  document.querySelectorAll('.meal').forEach(b=>{
+    // remove listeners duplicados (proteção)
+    b.replaceWith(b.cloneNode(true));
+  });
+  document.querySelectorAll('.meal').forEach(b=>{
+    b.addEventListener('click', (ev)=>{
+      selectedMeal = ev.currentTarget.dataset.meal;
+      document.querySelectorAll('.meal').forEach(m=>m.classList.remove('active'));
+      ev.currentTarget.classList.add('active');
+      renderMealItems();
+    });
+  });
+}
+
+/* ====== Eventos de adicionar / salvar ====== */
+addMealBtn?.addEventListener('click', async ()=>{
+  const name = (newMealName.value || '').trim();
+  if(!name) return showToast('Informe o nome da nova refeição.');
+  const id = generateMealId(name);
+  if(!window.userMeta) window.userMeta = {};
+  window.userMeta.mealsTemplate = window.userMeta.mealsTemplate || [];
+  window.userMeta.mealsTemplate.push({ id, label: name });
+  newMealName.value = '';
+  await saveMealsTemplate();
+  renderMealsConfig();
+  renderMealButtons();
+});
+
+if (saveMealsBtn) {
+  saveMealsBtn.onclick = async ()=>{
+    await saveMealsTemplate();
+    showToast('Refeições salvas.');
+  };
+}
+
+/* ====== Inicialização: garantir template e renderizar ====== */
+(async function initMealsUI(){
+  try {
+    await ensureMealsTemplate();
+    renderMealButtons();
+    renderMealsConfig();
+  } catch(e){ console.warn('initMealsUI erro:', e); }
+})();
+
+
+    // campos existentes
+    metaNome.value       = window.userMeta.nome ?? '';
+    metaSexo.value       = window.userMeta.sexo ?? 'M';
+    metaAltura.value     = window.userMeta.altura ?? '';
+    metaIdade.value      = window.userMeta.idade ?? '';
+    metaPeso.value       = window.userMeta.peso ?? '';
+    metaAtividade.value  = window.userMeta.nivel ?? '1.2';
+    metaEsteira.value    = window.userMeta.esteira ?? 0;
+    metaMusculacao.value = window.userMeta.musculacao ?? 0;
+    metaObjetivo.value   = window.userMeta.objetivo ?? '-800';
+
+    // campos de água (pega elemento direto caso não exista variável global)
+    const metaAguaEl = document.getElementById('metaAgua');
+    if(metaAguaEl) metaAguaEl.value = window.userMeta.metaAgua ?? '';
+
+    const metaAguaIntervaloEl = document.getElementById('metaAguaIntervalo');
+    if(metaAguaIntervaloEl) metaAguaIntervaloEl.value = window.userMeta.metaAguaIntervalo ?? '';
+
+    // cintura/pescoco/quadril (essas variáveis já existem no topo do seu arquivo)
+    metaCintura.value = window.userMeta.cintura ?? '';
+    metaPescoco.value = window.userMeta.pescoco ?? '';
+    metaQuadril.value = window.userMeta.quadril ?? '';
+
+    // badges
+    tmbBadge.innerHTML  = 'TMB<br><strong>' + (window.userMeta.tmb ?? 0) + ' kcal</strong>';
+    tdeeBadge.innerHTML = 'TDEE<br><strong>' + (window.userMeta.tdee ?? 0) + ' kcal</strong>';
+    metaBadge.innerHTML = 'Meta<br><strong>' + (window.userMeta.meta ?? 0) + ' kcal</strong>';
+
+    if(window.userMeta.bf){
+      bfBadge.innerHTML = 'BF<br><strong>' + window.userMeta.bf + ' %</strong>';
+    }
+  } else {
+    window.userMeta = null;
+  }
+}
 
 /* Auditoria */
 function renderAudit(){
@@ -3136,11 +3209,6 @@ showPage('registro');
   const day = (currentDayData && currentDayData.meals) ? currentDayData.meals : {};
 
     const mealsTemplate = (window.userMeta && Array.isArray(window.userMeta.mealsTemplate) && window.userMeta.mealsTemplate.length) ? window.userMeta.mealsTemplate : (typeof defaultMeals !== 'undefined' ? defaultMeals : []);
-// --- Diagnóstico: verificar dados carregados ---
-console.log('🔍 [DEBUG PREVIEW] currentDayData:', currentDayData);
-console.log('🔍 [DEBUG PREVIEW] mealsTemplate:', mealsTemplate);
-console.log('🔍 [DEBUG PREVIEW] day keys:', Object.keys(day || {}));
-
     // captura estilos já presentes (link/style) para manter visual (fallback silencioso)
     let styles = '';
     try {
@@ -3277,7 +3345,7 @@ console.log('🔍 [DEBUG PREVIEW] day keys:', Object.keys(day || {}));
     return html;
   }
 
- // === Gerar Preview (garante que o dia foi carregado antes de montar o HTML) ===
+   // === Gerar Preview (garante que o dia foi carregado antes de montar o HTML) ===
 if(btnPreview){
 btnPreview.addEventListener('click', async () => {
   if (!currentUser) {
@@ -3986,562 +4054,6 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("❌ Erro no Service Worker:", err));
 }
-
-// Refeição atualmente selecionada (usada em Registro e Check-up)
-let selectedMeal = 'cafedamanha';
-
-
-/* ====== Refeições - template personalizável ====== */
-// Default inicial (caso usuário ainda não tenha salvo)
-const defaultMeals = [
-  { id: 'cafedamanha', label: 'Café da manhã' },
-  { id: 'lanchmanha',  label: 'Lanche manhã' },
-  { id: 'almoco',      label: 'Almoço' },
-  { id: 'lanchetarde', label: 'Lanche tarde' },
-  { id: 'pretreino',   label: 'Pré-treino' },
-  { id: 'postreino',   label: 'Pós-treino' },
-  { id: 'jantar',      label: 'Jantar' }
-];
-
-const mealsConfigList = document.getElementById('mealsConfigList');
-const newMealName = document.getElementById('newMealName');
-const addMealBtn = document.getElementById('addMealBtn');
-const saveMealsBtn = document.getElementById('saveMealsBtn');
-
-// Garante que exista um template de refeições no userMeta
-async function ensureMealsTemplatePatched(){
-  if(!window.userMeta) window.userMeta = {};
-  if(!Array.isArray(window.userMeta.mealsTemplate) || window.userMeta.mealsTemplate.length === 0){
-    window.userMeta.mealsTemplate = defaultMeals.slice();
-    if(currentUser){
-      try {
-        await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
-      } catch(e){ console.warn('Falha ao salvar mealsTemplate padrão:', e); }
-    }
-  }
-}
-
-// Renderiza os botões da área de Registro (substitui o HTML estático)
-function renderMealButtons(){
-  const container = document.getElementById('mealBtns');
-  if(!container) return;
-  container.innerHTML = '';
-  (window.userMeta?.mealsTemplate || defaultMeals).forEach(m=>{
-    const btn = document.createElement('button');
-    btn.className = 'chip meal';
-    btn.dataset.meal = m.id;
-    btn.textContent = m.label;
-    container.appendChild(btn);
-  });
-  attachMealButtonHandlers();
-
-  // Mantém botão ativo
-  const active = container.querySelector(`.chip[data-meal="${selectedMeal}"]`);
-  if(active) active.classList.add('active');
-  else {
-    const first = container.querySelector('.chip.meal');
-    if(first){ selectedMeal = first.dataset.meal; first.classList.add('active'); }
-  }
-}
-
-// Renderiza lista de configuração dentro do Check-up Pessoal
-function renderMealsConfig(){
-  if(!mealsConfigList) return;
-  mealsConfigList.innerHTML = '';
-  const arr = (window.userMeta?.mealsTemplate || defaultMeals);
-  arr.forEach((m, idx) => {
-    const row = document.createElement('div');
-    row.className = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '8px';
-    row.style.marginBottom = '8px';
-    row.innerHTML = `
-      <input class="input meal-label" data-id="${m.id}" value="${m.label}" style="flex:1" />
-      <div style="display:flex;gap:6px">
-        <button class="chip btn-up" data-idx="${idx}" title="Subir">▲</button>
-        <button class="chip btn-down" data-idx="${idx}" title="Descer">▼</button>
-      </div>
-      <button class="chip" style="background:#8b1f1f;color:#fff" data-idx="${idx}" data-act="del">Excluir</button>
-    `;
-    mealsConfigList.appendChild(row);
-  });
-
-  // listeners: rename
-  mealsConfigList.querySelectorAll('.meal-label').forEach(inp=>{
-    inp.addEventListener('change', async (e)=>{
-      const id = e.target.dataset.id;
-      const m = window.userMeta.mealsTemplate.find(x => x.id === id);
-      if(m){
-        m.label = e.target.value.trim() || m.label;
-        await saveMealsTemplate();
-        renderMealButtons();
-      }
-    });
-  });
-
-  // listeners: subir
-  mealsConfigList.querySelectorAll('.btn-up').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const idx = parseInt(btn.dataset.idx);
-      if(idx <= 0) return;
-      const arr = window.userMeta.mealsTemplate;
-      [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
-      await saveMealsTemplate();
-      renderMealsConfig();
-      renderMealButtons();
-    });
-  });
-
-  // listeners: descer
-  mealsConfigList.querySelectorAll('.btn-down').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const idx = parseInt(btn.dataset.idx);
-      const arr = window.userMeta.mealsTemplate;
-      if(idx >= arr.length - 1) return;
-      [arr[idx+1], arr[idx]] = [arr[idx], arr[idx+1]];
-      await saveMealsTemplate();
-      renderMealsConfig();
-      renderMealButtons();
-    });
-  });
-
-  // listeners: excluir
-  mealsConfigList.querySelectorAll('button[data-act="del"]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const idx = parseInt(btn.dataset.idx);
-      const arr = window.userMeta.mealsTemplate;
-      const m = arr[idx];
-      if(!m) return;
-      const items = currentDayData.meals?.[m.id] || [];
-      if(items.length > 0){
-        const ok = confirm(`A refeição "${m.label}" contém ${items.length} item(ns). Ao excluir, esses itens serão removidos do registro do dia atual (${registroDate.value}). Confirmar exclusão?`);
-        if(!ok) return;
-        // remove os itens do dia atual e salva a data
-        delete currentDayData.meals[m.id];
-        try {
-          if(currentUser) await setDoc(dayDoc(currentUser.uid, registroDate.value || dateToYMD(new Date())), currentDayData);
-        } catch(e){ console.warn('Falha ao salvar dia ao excluir refeição:', e); }
-        renderMealItems(); computeDaySummary();
-      }
-      arr.splice(idx, 1);
-      await saveMealsTemplate();
-      renderMealsConfig();
-      renderMealButtons();
-    });
-  });
-}
-
-// Gera um id "seguro" para nova refeição (normaliza o nome)
-function generateMealId(label){
-  let id = String(label||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'').replace(/[^a-z0-9_-]/g,'');
-  if(!id) id = 'meal_' + Date.now();
-  if((window.userMeta.mealsTemplate||[]).some(m => m.id === id)) id += '_' + Date.now();
-  return id;
-}
-
-// Salva template no Firestore
-async function saveMealsTemplate(){
-  if(!currentUser) return;
-  try {
-    await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
-    await loadMeta(); // garante que window.userMeta está sincronizado
-  } catch(e){ console.error('Erro salvando mealsTemplate:', e); }
-}
-
-});
-
-
-
-// 2) Salvar template robusto: sempre grava localStorage; tenta Firestore se logado
-async function saveMealsTemplatePatched(){
-  try {
-    localStorage.setItem('ab_mealsTemplate', JSON.stringify(window.userMeta.mealsTemplate || defaultMeals));
-  } catch(e) { console.warn('localStorage save falhou', e); }
-
-  if(typeof currentUser === 'undefined' || !currentUser) {
-    // sem usuário logado: fim aqui (já temos localStorage)
-    console.info('saveMealsTemplatePatched: usuário não logado — salvo no localStorage apenas.');
-    return;
-  }
-
-  try {
-    await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
-    // recarrega meta (se houver função loadMeta)
-    if(typeof loadMeta === 'function') await loadMeta();
-  } catch(e){
-    console.error('Erro ao salvar mealsTemplate no Firestore:', e);
-  }
-}
-
-// 3) Event delegation para botões da aba Registro (evita cloneNode issues)
-function attachMealButtonHandlersPatched(){
-  const container = document.getElementById('mealBtns');
-  if(!container) return;
-  // remove listener anterior (se existir) para não duplicar
-  container.removeEventListener('__ab_meal_click', container.__ab_meal_click_handler);
-  // cria o handler
-  const handler = function(e){
-    const btn = e.target.closest && e.target.closest('.chip.meal');
-    if(!btn) return;
-    // atualiza seleção
-    selectedMeal = btn.dataset.meal;
-    container.querySelectorAll('.chip.meal').forEach(m=>m.classList.remove('active'));
-    btn.classList.add('active');
-    // debug
-    console.info('selectedMeal set to', selectedMeal);
-    // renderiza itens da refeição (se a função existir)
-    if(typeof renderMealItems === 'function') {
-      try { renderMealItems(); }
-      catch(err){ console.warn('renderMealItems erro:', err); }
-    }
-  };
-  // guarda e associa via addEventListener normal (com um nome interno p/ remover depois)
-  container.__ab_meal_click_handler = handler;
-  container.addEventListener('click', handler);
-}
-
-// 4) Re-atribui listeners das linhas de configuração (▲, ▼, excluir)
-//    Esta função faz attach seguro e idempotente (pode ser chamada sempre após renderMealsConfig)
-function attachConfigRowHandlers(){
-  if(!mealsConfigList) return;
-  // remover listeners antigos - limpamos e re-setamos (simpler)
-  mealsConfigList.querySelectorAll('.btn-up, .btn-down, button[data-act="del"], .meal-label').forEach(el=>{
-    el.replaceWith(el.cloneNode(true));
-  });
-
-  // rename
-  mealsConfigList.querySelectorAll('.meal-label').forEach(inp=>{
-    inp.addEventListener('change', async (e)=>{
-      const id = e.target.dataset.id;
-      const m = (window.userMeta.mealsTemplate || []).find(x => x.id === id);
-      if(m){
-        m.label = e.target.value.trim() || m.label;
-        await saveMealsTemplatePatched();
-        renderMealButtons();
-        console.info('Refeição renomeada:', m);
-      }
-    });
-  });
-
-  // subir
-  mealsConfigList.querySelectorAll('.btn-up').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      const idx = parseInt(btn.dataset.idx);
-      if(isNaN(idx) || idx <= 0) return;
-      const arr = window.userMeta.mealsTemplate;
-      [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
-      await saveMealsTemplatePatched();
-      renderMealsConfig();
-      renderMealButtons();
-      attachConfigRowHandlers(); // reattach new row handlers
-    });
-  });
-
-  // descer
-  mealsConfigList.querySelectorAll('.btn-down').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      const idx = parseInt(btn.dataset.idx);
-      const arr = window.userMeta.mealsTemplate;
-      if(isNaN(idx) || idx >= arr.length - 1) return;
-      [arr[idx+1], arr[idx]] = [arr[idx], arr[idx+1]];
-      await saveMealsTemplatePatched();
-      renderMealsConfig();
-      renderMealButtons();
-      attachConfigRowHandlers();
-    });
-  });
-
-  // excluir
-  mealsConfigList.querySelectorAll('button[data-act="del"]').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      const idx = parseInt(btn.dataset.idx);
-      const arr = window.userMeta.mealsTemplate;
-      const m = arr[idx];
-      if(!m) return;
-      const items = (typeof currentDayData !== 'undefined' && currentDayData.meals) ? (currentDayData.meals[m.id] || []) : [];
-      if(items.length > 0){
-        const ok = confirm(`A refeição "${m.label}" contém ${items.length} item(ns). Ao excluir, esses itens serão removidos do registro do dia atual. Confirmar?`);
-        if(!ok) return;
-        if(typeof currentDayData !== 'undefined' && currentDayData.meals){
-          delete currentDayData.meals[m.id];
-          if(typeof currentUser !== 'undefined' && currentUser && typeof dayDoc === 'function' && registroDate){
-            try { await setDoc(dayDoc(currentUser.uid, registroDate.value || dateToYMD(new Date())), currentDayData); }
-            catch(e){ console.warn('Falha salvando dia ao excluir refeição:', e); }
-          }
-        }
-        if(typeof renderMealItems === 'function') try { renderMealItems(); } catch(e){ console.warn(e); }
-        if(typeof computeDaySummary === 'function') try { computeDaySummary(); } catch(e){ console.warn(e); }
-      }
-      arr.splice(idx,1);
-      await saveMealsTemplatePatched();
-      renderMealsConfig();
-      renderMealButtons();
-      attachConfigRowHandlers();
-    });
-  });
-}
-
-// 5) Substitui add/salve para usar o patched save
-if(addMealBtn){
-  // remove handler existente e rebind
-  try { addMealBtn.replaceWith(addMealBtn.cloneNode(true)); } catch(e){ /* ignore */ }
-  const newAdd = document.getElementById('addMealBtn');
-  newAdd?.addEventListener('click', async ()=>{
-    const name = ( (document.getElementById('newMealName') || {}).value || '' ).trim();
-    if(!name) return showToast ? showToast('Informe o nome da refeição.') : alert('Informe o nome da refeição.');
-    const id = generateMealId(name);
-    window.userMeta.mealsTemplate = window.userMeta.mealsTemplate || [];
-    window.userMeta.mealsTemplate.push({ id, label: name });
-    (document.getElementById('newMealName') || {}).value = '';
-    await saveMealsTemplatePatched();
-    renderMealsConfig();
-    renderMealButtons();
-    attachConfigRowHandlers();
-  });
-}
-
-// salvar manual
-if(saveMealsBtn){
-  try { saveMealsBtn.replaceWith(saveMealsBtn.cloneNode(true)); } catch(e){}
-  const newSave = document.getElementById('saveMealsBtn');
-  newSave?.addEventListener('click', async ()=>{
-    await saveMealsTemplatePatched();
-    if(typeof showToast === 'function') showToast('Refeições salvas.');
-  });
-}
-
-// 6) Substitui referências usadas anteriormente para os nomes antigos
-// Se o seu código chama ensureMealsTemplatePatched() ou saveMealsTemplate(), 
-// redirecionamos para os patched para evitar duplicação.
-window.ensureMealsTemplate = ensureMealsTemplatePatched;
-window.saveMealsTemplate = saveMealsTemplatePatched;
-// Força a substituição total (garantia)
-ensureMealsTemplate = ensureMealsTemplatePatched;
-saveMealsTemplate   = saveMealsTemplatePatched;
-
-window.attachMealButtonHandlers = attachMealButtonHandlersPatched;
-
-// 7) Se já estiver renderizado, re-run para garantir handlers e sync
-try {
-  ensureMealsTemplatePatched().then(()=>{
-    renderMealButtons();
-    renderMealsConfig();
-    attachMealButtonHandlersPatched();
-    attachConfigRowHandlers();
-  });
-} catch(e){ console.warn('Erro no boot do patch de refeições:', e); }
-
-
-/* ===== Robust mealsTemplate persistence (localStorage + Firestore, com verificação) ===== */
-
-async function ensureMealsTemplatePatched(){
-  if(!window.userMeta) window.userMeta = {};
-
-  // 1) tenta carregar do localStorage primeiro (se existir)
-  try {
-    const stored = localStorage.getItem('ab_mealsTemplate');
-    if(stored){
-      const parsed = JSON.parse(stored);
-      if(Array.isArray(parsed) && parsed.length){
-        window.userMeta.mealsTemplate = parsed;
-        console.info('[meals] Carregado de localStorage:', parsed);
-      }
-    }
-  } catch(e){
-    console.warn('[meals] erro lendo localStorage', e);
-  }
-
-  // 2) se ainda não tem nada, usar defaultMeals (se existir) como fallback
-  if(!Array.isArray(window.userMeta.mealsTemplate) || window.userMeta.mealsTemplate.length === 0){
-    if(typeof defaultMeals !== 'undefined' && Array.isArray(defaultMeals) && defaultMeals.length){
-      window.userMeta.mealsTemplate = defaultMeals.slice();
-      console.info('[meals] Usando defaultMeals como fallback.');
-    } else {
-      window.userMeta.mealsTemplate = [];
-    }
-    // se estiver logado, tenta gravar esse padrão no servidor (não obrigatório)
-    if(typeof currentUser !== 'undefined' && currentUser && currentUser.uid){
-      try {
-        await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
-        console.info('[meals] mealsTemplate padrão gravado no servidor.');
-      } catch(e){
-        console.warn('[meals] Falha gravando padrão no servidor:', e);
-      }
-    }
-    try { localStorage.setItem('ab_mealsTemplate', JSON.stringify(window.userMeta.mealsTemplate)); } catch(e){}
-  } else {
-    // garante localStorage consistente com window.userMeta
-    try { localStorage.setItem('ab_mealsTemplate', JSON.stringify(window.userMeta.mealsTemplate)); } catch(e){}
-  }
-
-  // 3) se o usuário estiver logado, sincronizar com Firestore:
-  if(typeof currentUser !== 'undefined' && currentUser && currentUser.uid){
-    try {
-      const settingsRef = metaDoc(currentUser.uid);
-      const snap = await getDoc(settingsRef);
-      const server = snap.exists() ? snap.data().mealsTemplate : null;
-
-      // Se o servidor tem um template e local é vazio => usar server
-      if(Array.isArray(server) && server.length && (!window.userMeta.mealsTemplate || !window.userMeta.mealsTemplate.length)){
-        window.userMeta.mealsTemplate = server;
-        localStorage.setItem('ab_mealsTemplate', JSON.stringify(server));
-        console.info('[meals] Carregado do servidor porque local estava vazio.');
-        return;
-      }
-
-      // Se ambos existem e são diferentes -> preferir LOCAL (assumimos usuário editou localmente)
-      const localStr = JSON.stringify(window.userMeta.mealsTemplate || []);
-      const serverStr = JSON.stringify(server || []);
-      if(localStr !== serverStr){
-        console.info('[meals] Diferença detectada entre local e servidor — gravando local no servidor.');
-        await setDoc(settingsRef, { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true });
-        // confirmar leitura
-        const back = await getDoc(settingsRef);
-        const backData = back.exists() ? back.data().mealsTemplate : null;
-        if(Array.isArray(backData)) {
-          window.userMeta.mealsTemplate = backData;
-          localStorage.setItem('ab_mealsTemplate', JSON.stringify(backData));
-          console.info('[meals] Confirmação server <- local concluída.');
-        }
-      } else {
-        // idênticos: garante local consistente
-        if(Array.isArray(server)) {
-          window.userMeta.mealsTemplate = server;
-          localStorage.setItem('ab_mealsTemplate', JSON.stringify(server));
-        }
-      }
-    } catch(e){
-      console.warn('[meals] Erro na sincronização com Firestore (mantendo local):', e);
-    }
-  } else {
-    console.info('[meals] Usuário não logado — usando localStorage como fonte principal.');
-  }
-}
-
-async function saveMealsTemplatePatched(){
-  // salva local primeiro
-  try {
-    localStorage.setItem('ab_mealsTemplate', JSON.stringify(window.userMeta.mealsTemplate || []));
-    console.info('[meals] Salvo localmente.');
-  } catch(e){ console.warn('[meals] Falha salvando localStorage:', e); }
-
-  // se estiver logado, tenta gravar no servidor
-  if(typeof currentUser !== 'undefined' && currentUser && currentUser.uid){
-    try {
-      const settingsRef = metaDoc(currentUser.uid);
-      await setDoc(settingsRef, { mealsTemplate: window.userMeta.mealsTemplate || [] }, { merge: true });
-      console.info('[meals] Gravado no servidor.');
-      // opcional: reload de meta para consistência
-      if(typeof loadMeta === 'function') await loadMeta();
-    } catch(e){
-      console.warn('[meals] Falha ao salvar no servidor (mantendo local):', e);
-    }
-  } else {
-    console.info('[meals] Usuário não logado — salvo somente local.');
-  }
-}
-
-/* Rebind handlers e UI-safe boots (idempotente) */
-window.ensureMealsTemplate = ensureMealsTemplatePatched;
-window.saveMealsTemplate   = saveMealsTemplatePatched;
-
-function attachMealButtonHandlersPatched(){
-  const container = document.getElementById('mealBtns') || document.getElementById('mealButtons') || document.querySelector('.meals-row');
-  if(!container) return;
-  // remove listener anterior de forma segura
-  if(container.__ab_meal_click_handler) container.removeEventListener('click', container.__ab_meal_click_handler);
-  const handler = function(e){
-    const btn = e.target.closest && e.target.closest('.chip.meal');
-    if(!btn) return;
-    selectedMeal = btn.dataset.meal;
-    container.querySelectorAll('.chip.meal').forEach(m=>m.classList.remove('active'));
-    btn.classList.add('active');
-    try { if(typeof renderMealItems === 'function') renderMealItems(); } catch(e){ console.warn(e); }
-  };
-  container.__ab_meal_click_handler = handler;
-  container.addEventListener('click', handler);
-}
-
-function attachConfigRowHandlersPatched(){
-  // mesma lógica idempotente do seu código original (rebind seguro)
-  const mealsConfigList = document.getElementById('mealsConfigList') || document.querySelector('.meals-config');
-  if(!mealsConfigList) return;
-  mealsConfigList.querySelectorAll('.btn-up, .btn-down, button[data-act="del"], .meal-label').forEach(el=>{
-    el.replaceWith(el.cloneNode(true));
-  });
-
-  // rename
-  mealsConfigList.querySelectorAll('.meal-label').forEach(inp=>{
-    inp.addEventListener('change', async (e)=>{
-      const id = e.target.dataset.id;
-      const m = (window.userMeta.mealsTemplate || []).find(x => x.id === id);
-      if(m){
-        m.label = e.target.value.trim() || m.label;
-        await saveMealsTemplatePatched();
-        renderMealButtons();
-        console.info('Refeição renomeada:', m);
-      }
-    });
-  });
-
-  // subir / descer
-  mealsConfigList.querySelectorAll('.btn-up').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      const idx = parseInt(btn.dataset.idx);
-      if(isNaN(idx) || idx <= 0) return;
-      const arr = window.userMeta.mealsTemplate;
-      [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
-      await saveMealsTemplatePatched();
-      renderMealsConfig();
-      renderMealButtons();
-      attachConfigRowHandlersPatched();
-    });
-  });
-  mealsConfigList.querySelectorAll('.btn-down').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      const idx = parseInt(btn.dataset.idx);
-      const arr = window.userMeta.mealsTemplate;
-      if(isNaN(idx) || idx >= arr.length-1) return;
-      [arr[idx], arr[idx+1]] = [arr[idx+1], arr[idx]];
-      await saveMealsTemplatePatched();
-      renderMealsConfig();
-      renderMealButtons();
-      attachConfigRowHandlersPatched();
-    });
-  });
-
-  mealsConfigList.querySelectorAll('button[data-act="del"]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const idx = parseInt(btn.dataset.idx);
-      const arr = window.userMeta.mealsTemplate;
-      if(!arr || !arr[idx]) return;
-      arr.splice(idx,1);
-      await saveMealsTemplatePatched();
-      renderMealsConfig();
-      renderMealButtons();
-      attachConfigRowHandlersPatched();
-    });
-  });
-}
-
-/* Single boot: garante que patched init rode uma vez e rebind handlers */
-(async function initMealsUI_Final(){
-  try {
-    if (typeof selectedMeal === 'undefined') window.selectedMeal = 'cafedamanha';
-    await ensureMealsTemplatePatched();
-    if(typeof renderMealButtons === 'function') renderMealButtons();
-    if(typeof renderMealsConfig === 'function') renderMealsConfig();
-    attachMealButtonHandlersPatched();
-    attachConfigRowHandlersPatched();
-    console.info('[meals] Inicialização finalizada (patched).');
-  } catch(err){
-    console.warn('[meals] init error', err);
-  }
-})();
-
-
-
-
 </script>
 
 
