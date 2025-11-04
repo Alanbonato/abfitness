@@ -2401,8 +2401,24 @@ function renderDay(){
   metaDia.textContent = 'Meta diária: ' + (dayMeta || 0) + ' kcal';
 }
 
+function getMealList(meal){
+  // Garante estrutura de dados válida
+  if (!currentDayData) currentDayData = { meals: {} };
+  if (!currentDayData.meals) currentDayData.meals = {};
 
-function getMealList(meal){ return currentDayData.meals?.[meal] || []; }
+  // 🔹 Se a refeição ainda não existir, cria um novo array vazio
+  if (!Array.isArray(currentDayData.meals[meal])) {
+    currentDayData.meals[meal] = [];
+  }
+
+  // Retorna diretamente o array específico da refeição
+  return currentDayData.meals[meal];
+}
+
+
+
+
+
 
 function renderMealItems(){
   mealItemsTable.innerHTML = '';
@@ -2506,11 +2522,23 @@ mealItemsTable.addEventListener('click', async (e)=>{
     window.editIndex = null;
   });
 
+// === Troca de refeição (corrigido) ===
 document.querySelectorAll('.meal').forEach(b=>{
   b.addEventListener('click', (ev)=>{
     selectedMeal = ev.target.dataset.meal;
+
+    // Alterna destaque visual
     document.querySelectorAll('.meal').forEach(m=>m.classList.remove('active'));
     ev.target.classList.add('active');
+
+    // Garante que a refeição atual tenha seu próprio array
+    if (!currentDayData) currentDayData = { meals: {} };
+    if (!currentDayData.meals) currentDayData.meals = {};
+    if (!Array.isArray(currentDayData.meals[selectedMeal])) {
+      currentDayData.meals[selectedMeal] = [];
+    }
+
+    // Renderiza apenas os itens dessa refeição
     renderMealItems();
   });
 });
@@ -2544,12 +2572,20 @@ addToRegistroBtn.addEventListener('click', async () => {
   if (!currentDayData) currentDayData = { meals: {} };
   if (!currentDayData.meals) currentDayData.meals = {};
 
-  const arr = getMealList(selectedMeal);
-  arr.push(entry);
-  currentDayData.meals[selectedMeal] = arr;
+const arr = getMealList(selectedMeal);
 
-  renderMealItems();
-  computeDaySummary();
+// salva uma cópia profunda do objeto entry para evitar reuso de referência
+const itemToSave = JSON.parse(JSON.stringify(entry));
+arr.push(itemToSave);
+
+// assegura associação (getMealList já fez, mas deixamos por segurança)
+currentDayData.meals[selectedMeal] = arr;
+
+// limpa e renderiza apenas os itens da refeição selecionada
+renderMealItems();
+computeDaySummary();
+
+
 });
 
 
@@ -4112,64 +4148,9 @@ async function saveMealsTemplate(){
   } catch(e){ console.error('Erro salvando mealsTemplate:', e); }
 }
 
-// Liga os botões da aba Registro
-function attachMealButtonHandlers(){
-  document.querySelectorAll('.meal').forEach(b=>{
-    b.replaceWith(b.cloneNode(true));
-  });
-  document.querySelectorAll('.meal').forEach(b=>{
-    b.addEventListener('click', (ev)=>{
-      selectedMeal = ev.currentTarget.dataset.meal;
-      document.querySelectorAll('.meal').forEach(m=>m.classList.remove('active'));
-      ev.currentTarget.classList.add('active');
-      renderMealItems();
-    });
-  });
-}
-
-// Adicionar refeição
-addMealBtn?.addEventListener('click', async ()=>{
-  const name = (newMealName.value || '').trim();
-  if(!name) return showToast('Informe o nome da refeição.');
-  const id = generateMealId(name);
-  window.userMeta.mealsTemplate = window.userMeta.mealsTemplate || [];
-  window.userMeta.mealsTemplate.push({ id, label: name });
-  newMealName.value = '';
-  await saveMealsTemplate();
-  renderMealsConfig();
-  renderMealButtons();
-});
-
-// Salvar manualmente
-saveMealsBtn?.addEventListener('click', async ()=>{
-  await saveMealsTemplate();
-  showToast('Refeições salvas.');
 });
 
 
-/* ====== Patch: handlers resilientes e fallback localStorage ====== */
-
-// 1) Garantia / fallback do template (usa localStorage se Firestore não disponível)
-async function ensureMealsTemplatePatched(){
-  if(!window.userMeta) window.userMeta = {};
-  // tenta recuperar do localStorage se meta inexistente
-  const stored = (() => {
-    try { return localStorage.getItem('ab_mealsTemplate'); } catch(e){ return null; }
-  })();
-  if(!Array.isArray(window.userMeta.mealsTemplate) || window.userMeta.mealsTemplate.length === 0){
-    if(stored) {
-      try { window.userMeta.mealsTemplate = JSON.parse(stored); }
-      catch(e){ window.userMeta.mealsTemplate = defaultMeals.slice(); }
-    } else {
-      window.userMeta.mealsTemplate = defaultMeals.slice();
-    }
-    // tenta salvar no servidor se possível
-    if(typeof currentUser !== 'undefined' && currentUser){
-      try { await setDoc(metaDoc(currentUser.uid), { mealsTemplate: window.userMeta.mealsTemplate }, { merge: true }); }
-      catch(e){ console.warn('Falha ao salvar mealsTemplate padrão no servidor:', e); }
-    }
-  }
-}
 
 // 2) Salvar template robusto: sempre grava localStorage; tenta Firestore se logado
 async function saveMealsTemplatePatched(){
