@@ -1612,57 +1612,55 @@ function dateToYMD(d = new Date(), timeZone = 'America/Sao_Paulo') {
 function calcKcalFromMacros(p,c,f){ return Math.round((p*4)+(c*4)+(f*9)); }
 
 const pageMusculacao = document.getElementById('page-Musculação');
+
+
+
+
+
 function showPage(page){
+  // Esconde todas as abas
   pageRegistro.style.display = 'none';
   pageBanco.style.display = 'none';
   pageAud.style.display = 'none';
   pageMeta.style.display = 'none';
   if(pageExportar) pageExportar.style.display = 'none';
   if(pageMusculacao) pageMusculacao.style.display = 'none';
+  if(pageSuporte) pageSuporte.style.display = 'none';
 
-  document.querySelectorAll('.topnav .chip').forEach(ch=>ch.classList.remove('active'));
+  // Atualiza aba ativa
+  document.querySelectorAll('.topnav .chip').forEach(ch => ch.classList.remove('active'));
   const chip = document.querySelector('.topnav .chip[data-page="'+page+'"]');
   if(chip) chip.classList.add('active');
-  if(page==='registro') pageRegistro.style.display='block';
-  if(page==='banco') pageBanco.style.display='block';
-  if(page==='auditoria') pageAud.style.display='block';
-  if(page==='metabolismo') pageMeta.style.display='block';
-  if(page==='exportar') pageExportar.style.display='block';
-  if(page==='Musculação') pageMusculacao.style.display='block';
- 
-  // <-- Adicione este bloco:
+
+  // Mostra apenas a aba selecionada
+  if(page === 'registro') pageRegistro.style.display = 'block';
+  if(page === 'banco') pageBanco.style.display = 'block';
+  if(page === 'auditoria') pageAud.style.display = 'block';
+  if(page === 'metabolismo') pageMeta.style.display = 'block';
+  if(page === 'exportar') pageExportar.style.display = 'block';
+  if(page === 'Musculação') pageMusculacao.style.display = 'block';
   if(page === 'suporte') {
     if(pageSuporte) pageSuporte.style.display = 'block';
-    // Atualiza lista de cadastros pendentes toda vez que abrir a aba
-    try {
-      loadPendingRegistrations();
-    } catch (err) {
-      console.warn('Erro ao carregar pendentes:', err);
-    }
+    try { loadPendingRegistrations(); } catch(e){}
   }
 }
 
-/* ======================
-   Suporte - Aprovar cadastros (visível só para Alan)
-   ====================== */
+// ======================
+// Suporte - Aprovar cadastros (visível só para Alan)
+// ======================
 const suporteChip = document.getElementById('suporteChip');
 const pageSuporte = document.getElementById('page-suporte');
 
 async function checkShowSuporte(u){
-  // só mostra se e-mail do usuário bater com o seu (Alan)
   if(!u){ if(suporteChip) suporteChip.style.display='none'; return; }
   if(u.email === 'alanbnato@gmail.com'){
     if(suporteChip) suporteChip.style.display='';
-    // adiciona comportamento de navegação ao chip
     suporteChip.onclick = ()=> showPage('suporte');
-    // carrega lista de pendentes sempre que abrir
-    await loadPendingRegistrations();
   } else {
     if(suporteChip) suporteChip.style.display='none';
   }
 }
 
-// carrega pendências (usa collectionGroup('meta') e procura approved == false)
 async function loadPendingRegistrations(){
   const container = document.getElementById('suporteList');
   if(!container) return;
@@ -1674,61 +1672,52 @@ async function loadPendingRegistrations(){
       container.innerHTML = '<div>Nenhuma solicitação pendente.</div>';
       return;
     }
-    // monta lista
     const list = document.createElement('div');
-    list.style.display='flex'; list.style.flexDirection='column'; list.style.gap='8px';
+    list.style.display='flex';
+    list.style.flexDirection='column';
+    list.style.gap='8px';
+
     snap.forEach(docu=>{
       const data = docu.data();
-      // o caminho do documento meta é users/{uid}/meta/{docId} -> pegamos o uid do path
-      const path = docu.ref.path; // ex: users/UID/meta/settings
-      const parts = path.split('/');
-      const uid = parts[1];
+      const uid = docu.ref.path.split('/')[1];
       const box = document.createElement('div');
-      box.style.border='1px solid #ddd'; box.style.padding='8px'; box.style.borderRadius='6px';
-      box.innerHTML = `<div><strong>${data.nome || data.email || uid}</strong> — ${data.idade||'-'} anos • ${data.sexo||''}</div>
-                       <div style="font-size:12px;color:#444;margin-top:6px">Email/UID: ${data.email || uid}</div>
-                       <div style="margin-top:8px">${(data.objetivo||'')}</div>`;
-      const actions = document.createElement('div');
-      actions.style.marginTop='8px'; actions.style.display='flex'; actions.style.gap='8px';
-      const aprovar = document.createElement('button'); aprovar.className='chip'; aprovar.textContent='Aprovar';
-      const excluir = document.createElement('button'); excluir.className='chip'; excluir.textContent='Recusar / Excluir';
-      actions.appendChild(aprovar); actions.appendChild(excluir);
-      box.appendChild(actions);
-      list.appendChild(box);
+      box.style.border='1px solid #ddd';
+      box.style.padding='8px';
+      box.style.borderRadius='6px';
+      box.innerHTML = `
+        <strong>${data.nome || data.email || uid}</strong> — ${data.idade||'-'} anos<br>
+        Email: ${data.email || uid}
+      `;
+      const aprovar = document.createElement('button');
+      aprovar.textContent='Aprovar';
+      aprovar.className='chip';
+      const excluir = document.createElement('button');
+      excluir.textContent='Excluir';
+      excluir.className='chip ghost';
+      box.append(aprovar, excluir);
 
-      aprovar.addEventListener('click', async ()=>{
+      aprovar.onclick = async ()=>{
         if(!confirm('Aprovar este cadastro?')) return;
-        try {
-          // atualiza approved para true no documento meta/settings do usuário
-          await updateDoc(doc(db, `users/${uid}/meta`, 'settings'), { approved: true });
-          showToast('Cadastro aprovado.');
-          // recarrega lista
-          await loadPendingRegistrations();
-        } catch(e){
-          console.error('Erro aprovando:', e);
-          showToast('Erro aprovando: '+ (e.message||e));
-        }
-      });
-
-      excluir.addEventListener('click', async ()=>{
-        if(!confirm('Excluir esta solicitação? Isso NÃO excluirá o usuário Auth, apenas o meta.')) return;
-        try {
-          await deleteDoc(doc(db, `users/${uid}/meta`, 'settings'));
-          showToast('Solicitação excluída.');
-          await loadPendingRegistrations();
-        } catch(e){
-          console.error('Erro excluindo:', e);
-          showToast('Erro excluindo: '+ (e.message||e));
-        }
-      });
+        await updateDoc(doc(db, `users/${uid}/meta`, 'settings'), { approved:true });
+        showToast('Cadastro aprovado.');
+        loadPendingRegistrations();
+      };
+      excluir.onclick = async ()=>{
+        if(!confirm('Excluir este cadastro?')) return;
+        await deleteDoc(doc(db, `users/${uid}/meta`, 'settings'));
+        showToast('Cadastro excluído.');
+        loadPendingRegistrations();
+      };
+      list.append(box);
     });
     container.innerHTML = '';
-    container.appendChild(list);
+    container.append(list);
   } catch(e){
-    console.error('loadPendingRegistrations erro', e);
+    console.error(e);
     container.innerHTML = '<div>Erro ao carregar pendências.</div>';
   }
 }
+
 
 // chame checkShowSuporte quando o estado auth mudar — já existe onAuthStateChanged; apenas garanta que chamamos aqui:
 // (se já houver onAuthStateChanged no seu arquivo, adicione checkShowSuporte(u) dentro dele)
