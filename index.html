@@ -1879,6 +1879,7 @@ onAuthStateChanged(auth, async (u)=>{
     loginScreen.style.display='none';
     mainScreen.style.display='';
     topnav.style.display='';
+    if (registroDate) registroDate.value = dateToYMD(new Date());
     showPage('registro');
 
     // carrega dados do usuário agora que está logado
